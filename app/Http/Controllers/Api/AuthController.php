@@ -25,7 +25,10 @@ class AuthController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json($validator->errors(), 400);
+            return response()->json([
+                'message' => 'Validasi Gagal',
+                'errors' => $validator->errors() // Akan memberitahu detail: "Email has already been taken"
+            ], 422); // 422 adalah kode Unprocessable Entity
         }
 
         // --- LOGIKA GENERATE MEMBER ID UNIK ---

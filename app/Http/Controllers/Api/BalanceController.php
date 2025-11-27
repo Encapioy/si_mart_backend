@@ -63,6 +63,9 @@ class BalanceController extends Controller
         $user->saldo -= $request->amount;
         $user->save();
 
+        // ... (setelah $user->saldo -= $request->amount; $user->save())
+        $this->recordMutation($user, $request->amount, 'debit', 'withdraw', 'Request Penarikan Dana');
+
         // Simpan ke Withdrawals
         $withdrawal = Withdrawal::create([
             'user_id' => $user->id,
@@ -72,6 +75,7 @@ class BalanceController extends Controller
             'account_number' => $request->metode == 'transfer' ? $request->account_number : null,
             'account_name' => $request->metode == 'transfer' ? $request->account_name : null,
         ]);
+
 
         return response()->json(['message' => 'Pengajuan penarikan berhasil.', 'sisa_saldo' => $user->saldo]);
     }
@@ -110,17 +114,22 @@ class BalanceController extends Controller
         if ($receiver->id == $sender->id)
             return response()->json(['message' => 'Tidak bisa transfer ke diri sendiri'], 400);
 
+
         // 4. EKSEKUSI TRANSFER (Pakai DB Transaction biar aman)
         return DB::transaction(function () use ($sender, $receiver, $request) {
             // Kurangi Saldo Pengirim
             $sender->saldo -= $request->amount;
             $sender->save();
 
+            $this->recordMutation($sender, $request->amount, 'debit', 'transfer', 'Transfer ke ' . $receiver->nama_lengkap);
+
+
             // Tambah Saldo Penerima
             $receiver->saldo += $request->amount;
             $receiver->save();
 
-            // Opsional: Catat riwayat transfer di tabel tersendiri (mutations)
+            $this->recordMutation($receiver, $request->amount, 'credit', 'transfer', 'Terima saldo dari ' . $sender->nama_lengkap);
+
             // Tapi untuk sekarang return sukses aja cukup.
 
             return response()->json([

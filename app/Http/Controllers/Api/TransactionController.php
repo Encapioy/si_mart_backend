@@ -83,16 +83,22 @@ class TransactionController extends Controller
                             $product->seller->saldo += $totalJatahMerchant;
                             $product->seller->save();
 
+                            $this->recordMutation($product->seller, $totalJatahMerchant, 'credit', 'sale', 'Penjualan: ' . $product->nama_produk);
+
                             $adminKasir = \App\Models\Admin::where('role', 'kasir')->first();
                             if ($adminKasir) {
                                 $adminKasir->saldo += $totalJatahKasir;
                                 $adminKasir->save();
+
+                                $this->recordMutation($adminKasir, $totalJatahKasir, 'credit', 'sale_profit', 'Profit Simart: ' . $product->nama_produk);
                             }
 
                             $adminDev = \App\Models\Admin::where('role', 'developer')->first();
                             if ($adminDev) {
                                 $adminDev->saldo += $totalJatahDev;
                                 $adminDev->save();
+
+                                $this->recordMutation($adminDev, $totalJatahDev, 'credit', 'sale_tax', 'Tax Developer: ' . $product->nama_produk);
                             }
                         } else {
                             // KASUS TOKO SENDIRI: Full buat Merchant
@@ -118,6 +124,8 @@ class TransactionController extends Controller
 
                 $user->saldo -= $total_bayar;
                 $user->save();
+
+                $this->recordMutation($user, $transaction->total_bayar, 'debit', 'purchase', 'Pembayaran Belanja');
 
                 $transaction->total_bayar = $total_bayar;
                 $transaction->save();
@@ -150,12 +158,16 @@ class TransactionController extends Controller
             $total_bayar = 0;
             $qrCode = 'TRX-QR-' . strtoupper(Str::random(8));
 
+            // SETTING WAKTU EXPIRED (Misal: 5 Menit dari sekarang)
+            $waktuExpired = now()->addMinutes(5);
+
             $transaction = Transaction::create([
                 'transaction_code' => $qrCode,
                 'status' => 'pending',
                 'user_id' => null,
                 'total_bayar' => 0,
                 'tanggal_transaksi' => now(),
+                'expired_at' => $waktuExpired,
             ]);
 
             foreach ($request->items as $item) {
@@ -205,13 +217,26 @@ class TransactionController extends Controller
                 ->lockForUpdate()
                 ->first();
 
+
             if (!$transaction)
-                throw new \Exception("QR Code kadaluarsa atau sudah dibayar!");
+                throw new \Exception("Transaksi tidak valid atau sudah dibayar!");
+
+            // Apakah waktu sekarang sudah melewati batas expired?
+            if (now() > $transaction->expired_at) {
+                // Opsional: Ubah status jadi cancelled biar gak menuhin query pending
+                $transaction->status = 'cancelled';
+                $transaction->save();
+
+                throw new \Exception("QR Code sudah kadaluarsa! Silakan buat ulang transaksi.");
+            }
+
             if ($user->saldo < $transaction->total_bayar)
                 throw new \Exception("Saldo tidak cukup!");
 
             $user->saldo -= $transaction->total_bayar;
             $user->save();
+
+            $this->recordMutation($user, $transaction->total_bayar, 'debit', 'purchase', 'Pembayaran Belanja');
 
             $items = TransactionItem::with('product.seller')->where('transaction_id', $transaction->id)->get();
 
@@ -237,16 +262,22 @@ class TransactionController extends Controller
                         $product->seller->saldo += $totalJatahMerchant;
                         $product->seller->save();
 
+                        $this->recordMutation($product->seller, $totalJatahMerchant, 'credit', 'sale', 'Penjualan: ' . $product->nama_produk);
+
                         $adminKasir = \App\Models\Admin::where('role', 'kasir')->first();
                         if ($adminKasir) {
                             $adminKasir->saldo += $totalJatahKasir;
                             $adminKasir->save();
+
+                            $this->recordMutation($adminKasir, $totalJatahKasir, 'credit', 'sale_profit', 'Profit Simart: ' . $product->nama_produk);
                         }
 
                         $adminDev = \App\Models\Admin::where('role', 'developer')->first();
                         if ($adminDev) {
                             $adminDev->saldo += $totalJatahDev;
                             $adminDev->save();
+
+                            $this->recordMutation($adminDev, $totalJatahDev, 'credit', 'sale_tax', 'Tax Developer: ' . $product->nama_produk);
                         }
                     } else {
                         // TOKO SENDIRI
@@ -294,11 +325,23 @@ class TransactionController extends Controller
 
             if (!$transaction)
                 throw new \Exception("Transaksi tidak valid atau sudah dibayar!");
+
+            // Apakah waktu sekarang sudah melewati batas expired?
+            if (now() > $transaction->expired_at) {
+                // Opsional: Ubah status jadi cancelled biar gak menuhin query pending
+                $transaction->status = 'cancelled';
+                $transaction->save();
+
+                throw new \Exception("QR Code sudah kadaluarsa! Silakan buat ulang transaksi.");
+            }
+
             if ($user->saldo < $transaction->total_bayar)
                 throw new \Exception("Saldo tidak cukup!");
 
             $user->saldo -= $transaction->total_bayar;
             $user->save();
+
+            $this->recordMutation($user, $transaction->total_bayar, 'debit', 'purchase', 'Pembayaran Belanja');
 
             $items = TransactionItem::with('product.seller')->where('transaction_id', $transaction->id)->get();
 
@@ -324,16 +367,22 @@ class TransactionController extends Controller
                         $product->seller->saldo += $totalJatahMerchant;
                         $product->seller->save();
 
+                        $this->recordMutation($product->seller, $totalJatahMerchant, 'credit', 'sale', 'Penjualan: ' . $product->nama_produk);
+
                         $adminKasir = \App\Models\Admin::where('role', 'kasir')->first();
                         if ($adminKasir) {
                             $adminKasir->saldo += $totalJatahKasir;
                             $adminKasir->save();
+
+                            $this->recordMutation($adminKasir, $totalJatahKasir, 'credit', 'sale_profit', 'Profit Simart: ' . $product->nama_produk);
                         }
 
                         $adminDev = \App\Models\Admin::where('role', 'developer')->first();
                         if ($adminDev) {
                             $adminDev->saldo += $totalJatahDev;
                             $adminDev->save();
+
+                            $this->recordMutation($adminDev, $totalJatahDev, 'credit', 'sale_tax', 'Tax Developer: ' . $product->nama_produk);
                         }
                     } else {
                         // TOKO SENDIRI
@@ -349,6 +398,188 @@ class TransactionController extends Controller
 
             return response()->json([
                 'message' => 'Pembayaran Kiosk Berhasil!',
+                'sisa_saldo' => $user->saldo
+            ]);
+        });
+    }
+
+    // ==========================================
+    // METODE 3: PUSH PAYMENT (Kasir Scan, User PIN di HP)
+    // ==========================================
+
+    // TAHAP A: Kasir Tembak Tagihan ke User
+    public function requestPaymentToUser(Request $request)
+    {
+        // Validasi: Butuh Identity User (QR Member) + Barang
+        $request->validate([
+            'identity_code' => 'required|string', // Hasil Scan Kasir
+            'items' => 'required|array',
+            'items.*.product_id' => 'required|exists:products,id',
+            'items.*.qty' => 'required|integer|min:1',
+        ]);
+
+        // 1. Cari User
+        $user = User::where('member_id', $request->identity_code)
+            ->orWhere('nfc_id', $request->identity_code)
+            ->orWhere('username', $request->identity_code)
+            ->first();
+
+        if (!$user)
+            return response()->json(['message' => 'User tidak ditemukan!'], 404);
+
+        // 2. Buat Transaksi Pending
+        return DB::transaction(function () use ($request, $user) {
+            $total_bayar = 0;
+            // Kode unik PUSH payment
+            $trxCode = 'TRX-PUSH-' . strtoupper(Str::random(8));
+
+            $transaction = Transaction::create([
+                'transaction_code' => $trxCode,
+                'status' => 'waiting_confirmation', // Status Baru!
+                'user_id' => $user->id, // Kita sudah tau user-nya siapa
+                'total_bayar' => 0,
+                'tanggal_transaksi' => now(),
+            ]);
+
+            foreach ($request->items as $item) {
+                $product = Product::find($item['product_id']);
+
+                // Cek Stok (Booking stok dulu)
+                if ($product->stok < $item['qty'])
+                    throw new \Exception("Stok {$product->nama_produk} kurang!");
+
+                $hargaAkhir = $product->harga_akhir;
+                $subtotal = $hargaAkhir * $item['qty'];
+                $total_bayar += $subtotal;
+
+                TransactionItem::create([
+                    'transaction_id' => $transaction->id,
+                    'product_id' => $product->id,
+                    'qty' => $item['qty'],
+                    'harga_saat_itu' => $hargaAkhir
+                ]);
+            }
+
+            $transaction->total_bayar = $total_bayar;
+            $transaction->save();
+
+            // TODO: Di sini nanti bisa pasang Kode Notifikasi (FCM) ke HP User
+            // "Halo Udin, Kasir minta pembayaran Rp 15.000. Klik untuk bayar."
+
+            return response()->json([
+                'message' => 'Tagihan terkirim ke user. Menunggu PIN User...',
+                'transaction_code' => $trxCode,
+                'user_name' => $user->nama_lengkap
+            ]);
+        });
+    }
+
+    // TAHAP B: User Cek Tagihan Masuk (Polling / List)
+    public function getUserPendingBills(Request $request)
+    {
+        $user = $request->user();
+
+        $bills = Transaction::where('user_id', $user->id)
+            ->where('status', 'waiting_confirmation')
+            ->with('items.product') // Biar tau beli apa aja
+            ->latest()
+            ->get();
+
+        return response()->json(['data' => $bills]);
+    }
+
+    // TAHAP C: User Konfirmasi Bayar (Input PIN di HP)
+    public function confirmPaymentByUser(Request $request)
+    {
+        $request->validate([
+            'transaction_code' => 'required|exists:transactions,transaction_code',
+            'pin' => 'required|string|size:6',
+        ]);
+
+        $user = $request->user();
+
+        // 1. Cek PIN
+        if ($user->pin !== $request->pin)
+            return response()->json(['message' => 'PIN Salah'], 401);
+
+        // 2. Cari Transaksi
+        $transaction = Transaction::where('transaction_code', $request->transaction_code)
+            ->where('user_id', $user->id) // Pastikan punya dia sendiri
+            ->where('status', 'waiting_confirmation')
+            ->first();
+
+        if (!$transaction)
+            return response()->json(['message' => 'Tagihan tidak ditemukan atau sudah dibayar'], 404);
+
+        if ($user->saldo < $transaction->total_bayar)
+            return response()->json(['message' => 'Saldo tidak cukup'], 400);
+
+        // 3. Eksekusi Bayar
+        return DB::transaction(function () use ($transaction, $user) {
+
+            // Potong Saldo
+            $user->saldo -= $transaction->total_bayar;
+            $user->save();
+
+            // Rekam Mutasi Pembeli
+            $this->recordMutation($user, $transaction->total_bayar, 'debit', 'purchase', 'Pembayaran di Kasir (Push)');
+
+            // Proses Barang & Bagi Hasil
+            $items = TransactionItem::with('product.seller')->where('transaction_id', $transaction->id)->get();
+
+            foreach ($items as $item) {
+                $product = $item->product;
+
+                // Kurangi Stok
+                if ($product->stok < $item->qty)
+                    throw new \Exception("Stok habis saat konfirmasi!");
+                $product->stok -= $item->qty;
+                $product->save();
+
+                // Hitung Subtotal
+                $subtotal = $item->harga_saat_itu * $item->qty;
+
+                // Transfer Uang (Logic 15%)
+                if ($product->seller) {
+                    if ($product->store_id == null) {
+                        // Simart
+                        $totalPotongan = $subtotal * 0.15;
+                        $totalJatahDev = 100 * $item->qty;
+                        $totalJatahKasir = max(0, $totalPotongan - $totalJatahDev);
+                        $totalJatahMerchant = $subtotal - $totalPotongan;
+
+                        $product->seller->saldo += $totalJatahMerchant;
+                        $product->seller->save();
+                        $this->recordMutation($product->seller, $totalJatahMerchant, 'credit', 'sale', 'Penjualan: ' . $product->nama_produk);
+
+                        $adminKasir = \App\Models\Admin::where('role', 'kasir')->first();
+                        if ($adminKasir) {
+                            $adminKasir->saldo += $totalJatahKasir;
+                            $adminKasir->save();
+                            $this->recordMutation($adminKasir, $totalJatahKasir, 'credit', 'sale_profit', 'Profit: ' . $product->nama_produk);
+                        }
+
+                        $adminDev = \App\Models\Admin::where('role', 'developer')->first();
+                        if ($adminDev) {
+                            $adminDev->saldo += $totalJatahDev;
+                            $adminDev->save();
+                            $this->recordMutation($adminDev, $totalJatahDev, 'credit', 'sale_tax', 'Tax: ' . $product->nama_produk);
+                        }
+                    } else {
+                        // Toko Sendiri
+                        $product->seller->saldo += $subtotal;
+                        $product->seller->save();
+                        $this->recordMutation($product->seller, $subtotal, 'credit', 'sale', 'Penjualan: ' . $product->nama_produk);
+                    }
+                }
+            }
+
+            // Update Status
+            $transaction->status = 'paid';
+            $transaction->save();
+
+            return response()->json([
+                'message' => 'Pembayaran Berhasil!',
                 'sisa_saldo' => $user->saldo
             ]);
         });

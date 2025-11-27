@@ -10,6 +10,7 @@ use App\Models\TopUp;
 use App\Models\Admin;
 use App\Models\Transaction;
 use App\Models\Product;
+use Illuminate\Support\Facades\Validator;
 
 class AdminController extends Controller
 {
@@ -43,6 +44,8 @@ class AdminController extends Controller
         $user = User::find($topup->user_id);
         $user->saldo += $realAmount;
         $user->save();
+
+        $this->recordMutation($user, $realAmount, 'credit', 'topup', 'Top Up Saldo');
 
         // Update Status
         $topup->status = 'approved';
@@ -84,6 +87,8 @@ class AdminController extends Controller
         // Eksekusi Top Up
         $targetUser->saldo += $request->amount;
         $targetUser->save();
+
+        $this->recordMutation($targetUser, $request->amount, 'credit', 'topup', 'Top Up Saldo');
 
         // Opsional: Catat di tabel TopUp juga dengan status 'approved' otomatis
         // Biar masuk laporan keuangan
@@ -157,6 +162,7 @@ class AdminController extends Controller
 
                 $user->saldo -= $fee; // Potong fee
                 $user->save();
+                $this->recordMutation($user, $fee, 'debit', 'admin_fee', 'Biaya Admin Penarikan');
 
                 $withdrawal->admin_fee = $fee;
             }
@@ -379,6 +385,47 @@ class AdminController extends Controller
                     'merchant_approvals' => $pendingVerifications // Tugas Admin Pusat
                 ]
             ]
+        ]);
+    }
+
+    // 11. ADMIN EDIT DATA USER (Termasuk NFC)
+    public function updateUser(Request $request, $id)
+    {
+        // Pastikan yang akses adalah Admin Pusat
+        if ($request->user()->role !== 'pusat') {
+            return response()->json(['message' => 'Unauthorized. Hanya Admin Pusat.'], 403);
+        }
+
+        $targetUser = User::find($id);
+        if (!$targetUser)
+            return response()->json(['message' => 'User tidak ditemukan'], 404);
+
+        // Validasi
+        // Perhatikan 'unique:users,email,'.$id. Ini artinya:
+        // "Email harus unik, TAPI kecualikan untuk ID user ini sendiri" (biar gak error kalau gak ganti email)
+        $validator = Validator::make($request->all(), [
+            'nama_lengkap' => 'sometimes|string|max:255',
+            'username' => 'sometimes|string|unique:users,username,' . $id,
+            'email' => 'sometimes|email|unique:users,email,' . $id,
+            'nfc_id' => 'nullable|string|unique:users,nfc_id,' . $id, // <--- Ini untuk update Kartu
+            'member_id' => 'nullable|string|unique:users,member_id,' . $id,
+        ]);
+
+        if ($validator->fails())
+            return response()->json($validator->errors(), 400);
+
+        // Update Data (Hanya field yang dikirim saja yang diupdate)
+        $targetUser->update($request->only([
+            'nama_lengkap',
+            'username',
+            'email',
+            'nfc_id',
+            'member_id'
+        ]));
+
+        return response()->json([
+            'message' => 'Data user berhasil diperbarui',
+            'data' => $targetUser
         ]);
     }
 }

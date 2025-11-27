@@ -14,7 +14,8 @@ class Transaction extends Model
         'status',
         'user_id',
         'total_bayar',
-        'tanggal_transaksi'
+        'tanggal_transaksi',
+        'expired_at'
     ];
 
     // Relasi: Transaksi ini milik siapa?

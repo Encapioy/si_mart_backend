@@ -55,4 +55,24 @@ class Product extends Model
     {
         return $this->belongsToMany(User::class, 'favorites', 'product_id', 'user_id');
     }
+
+    protected $appends = ['gambar_url', 'gambar_thumb_url'];
+
+    // 1. URL GAMBAR ASLI (Detail Produk)
+    public function getGambarUrlAttribute()
+    {
+        if ($this->gambar) {
+            return asset('storage/products/originals/' . $this->gambar);
+        }
+        return null; // Atau URL gambar default
+    }
+
+    // 2. URL GAMBAR KECIL (List Produk)
+    public function getGambarThumbUrlAttribute()
+    {
+        if ($this->gambar) {
+            return asset('storage/products/thumbnails/' . $this->gambar);
+        }
+        return null;
+    }
 }

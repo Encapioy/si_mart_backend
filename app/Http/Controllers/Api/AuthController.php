@@ -134,27 +134,15 @@ class AuthController extends Controller
         }
 
         // --- SKENARIO 2: CEK LOGIN ADMIN ---
+        $admin = Admin::where('username', $request->login)->first();
+
         if ($admin && Hash::check($request->password, $admin->password)) {
             $admin->tokens()->delete();
             $token = $admin->createToken('admin_token')->plainTextToken;
             return response()->json([
                 'message' => 'Login Admin Berhasil',
                 'status' => 'success',
-                'role' => 'admin',
-                'access_token' => $token,
-                'user' => $admin
-            ]);
-        }
-
-        $admin = Admin::where('username', $request->username)->first();
-        if ($admin && Hash::check($request->password, $admin->password)) {
-            $admin->tokens()->delete();
-
-            $token = $admin->createToken('admin_token')->plainTextToken;
-
-            return response()->json([
-                'message' => 'Login Admin Berhasil',
-                'role' => $admin->role, // <--- UBAH INI (Dulu string 'admin', sekarang dinamis)
+                'role' => $admin->role,
                 'access_token' => $token,
                 'token_type' => 'Bearer',
                 'user' => $admin

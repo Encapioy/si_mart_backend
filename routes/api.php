@@ -36,9 +36,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // --- AUTH & PROFILE ---
     Route::post('/logout', [AuthController::class, 'logout']);
-    Route::get('/me', [AuthController::class, 'me']);
-    Route::post('/users/change-password', [UserController::class, 'changePassword']);
-    Route::post('/users/change-pin', [UserController::class, 'changePin']);
+    Route::get('/me', [AuthController::class, 'me']); // isi profile
+    Route::post('/users/change-password', [UserController::class, 'changePassword']); // ganti password
+    Route::post('/users/change-pin', [UserController::class, 'changePin']); // ganti pin
+    Route::post('/users/profile', [UserController::class, 'updateProfile']); // update profile
+    Route::get('/history', [App\Http\Controllers\Api\HistoryController::class, 'index']); // riwayat semua transaksi
+    Route::get('/home', [App\Http\Controllers\Api\UserDashboardController::class, 'home']); // Tab Home
+    Route::get('/infos', [App\Http\Controllers\Api\UserDashboardController::class, 'infos']); // Tab Info
 
     // --- FITUR KELUARGA ---
     Route::post('/users/pair', [UserController::class, 'pairChild']);
@@ -64,6 +68,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // --- TRANSAKSI (KASIR & PEMBELIAN) ---
     Route::post('/checkout', [TransactionController::class, 'checkout']); // Metode 1: Direct NFC
     Route::get('/transactions', [TransactionController::class, 'history']); // Riwayat Belanja User
+    Route::post('/transactions/request-payment', [TransactionController::class, 'requestPaymentToUser']); // 1. Kasir kirim tagihan
+    Route::get('/transactions/pending-bills', [TransactionController::class, 'getUserPendingBills']); // 2. User cek ada tagihan gak?
+    Route::post('/transactions/confirm-payment', [TransactionController::class, 'confirmPaymentByUser']); // 3. User bayar
     Route::get('/merchant/sales', [TransactionController::class, 'salesHistory']); // Dashboard Merchant
 
     // Fitur Transaksi QR (Metode 2)
@@ -97,6 +104,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/admin/verifications/{id}/reject', [AdminController::class, 'rejectUser']);
     Route::put('/admin/users/{id}/reset', [AdminController::class, 'resetUserAccess']); // Reset Pass/PIN
     Route::post('/admin/fix-member-ids', [AdminController::class, 'generateOldMemberIds']); // Maintenance
+    Route::put('/admin/users/{id}', [AdminController::class, 'updateUser']); // update user
 
     // CMS Informasi (Admin Pusat)
     Route::post('/admin/informations', [InformationController::class, 'store']);

@@ -6,6 +6,9 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Product;
 use Illuminate\Support\Facades\Validator;
+use Intervention\Image\ImageManager;
+use Intervention\Image\Drivers\Gd\Driver; // Kita pakai driver GD (bawaan PHP)
+use Illuminate\Support\Facades\Storage;
 
 class ProductController extends Controller
 {
@@ -131,7 +134,35 @@ class ProductController extends Controller
         // 4. LOGIKA BARCODE HYBRID
         $final_barcode = $request->filled('barcode') ? $request->barcode : 'SIS-' . mt_rand(100000, 999999);
 
-        // 5. SIMPAN
+        // 5. LOGIKA UPLOAD GAMBAR (ORIGINAL & THUMBNAIL)
+        $namaFileGambar = null;
+
+        if ($request->hasFile('gambar')) {
+            $file = $request->file('gambar');
+            $filename = uniqid() . '.' . $file->getClientOriginalExtension(); // Bikin nama unik (contoh: a7s8d6f.jpg)
+
+            // Siapkan Manager Gambar
+            $manager = new ImageManager(new Driver());
+
+            // A. SIMPAN ORIGINAL
+            // Kita simpan manual ke storage public
+            $file->storeAs('products/originals', $filename, 'public');
+
+            // B. SIMPAN THUMBNAIL (RESIZE)
+            // Baca gambar
+            $image = $manager->read($file);
+            // Resize (Lebar 300px, Tinggi menyesuaikan rasio)
+            $image->scale(width: 300);
+            // Encode jadi file lagi
+            $encoded = $image->toJpeg(80); // Kualitas 80%
+
+            // Simpan ke folder thumbnails
+            Storage::disk('public')->put('products/thumbnails/' . $filename, $encoded);
+
+            $namaFileGambar = $filename; // Ini yang masuk DB
+        }
+
+        // 6. SIMPAN
         $product = Product::create([
             'barcode' => $final_barcode,
             'nama_produk' => $request->nama_produk,
@@ -147,7 +178,7 @@ class ProductController extends Controller
             'po_estimasi' => $request->po_estimasi,
             'po_kuota' => $request->po_kuota,
 
-            'gambar' => $request->gambar,
+            'gambar' => $namaFileGambar,
             'ingredients' => $request->ingredients,
             'seller_id' => $user->id,
             'seller_type' => get_class($user),

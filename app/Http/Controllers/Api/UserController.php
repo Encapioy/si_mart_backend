@@ -173,4 +173,53 @@ class UserController extends Controller
             ]
         ]);
     }
+
+    // 6. UPDATE DATA PRIBADI (UMUM & FOTO)
+    // Method: POST (karena ada upload file)
+    public function updateProfile(Request $request)
+    {
+        $user = $request->user();
+
+        // 1. Validasi (Gabungan Text & Foto)
+        $validator = Validator::make($request->all(), [
+            'nama_lengkap' => 'sometimes|required|string|max:255',
+            // Pastikan unique mengecualikan ID user sendiri
+            'username' => 'sometimes|required|string|max:255|unique:users,username,' . $user->id,
+            'email' => 'sometimes|required|email|max:255|unique:users,email,' . $user->id,
+            // Validasi Foto (Opsional/Sometimes)
+            'profile_photo' => 'sometimes|image|max:2048', // Max 2MB
+        ]);
+
+        if ($validator->fails())
+            return response()->json($validator->errors(), 400);
+
+        // 2. Siapkan data yang akan diupdate dari inputan text
+        // Kita tampung dulu di array agar nanti bisa ditambah path foto jika ada
+        $dataToUpdate = $request->only(['nama_lengkap', 'username', 'email']);
+
+        // 3. Cek: Apakah user mengupload foto baru?
+        if ($request->hasFile('profile_photo')) {
+
+            // A. Hapus foto lama jika ada (Biar storage gak penuh sampah)
+            if ($user->profile_photo && Storage::disk('public')->exists($user->profile_photo)) {
+                Storage::disk('public')->delete($user->profile_photo);
+            }
+
+            // B. Simpan foto baru ke folder 'profiles' di public disk
+            $path = $request->file('profile_photo')->store('profiles', 'public');
+
+            // C. Masukkan path foto baru ke array data yang akan diupdate
+            $dataToUpdate['profile_photo'] = $path;
+        }
+
+        // 4. Eksekusi Update Database sekaligus
+        // $user->update() akan otomatis hanya mengupdate kolom yang ada di array $dataToUpdate
+        $user->update($dataToUpdate);
+
+        // Ambil data user terbaru (fresh) dan lampirkan URL fotonya
+        return response()->json([
+            'message' => 'Profil berhasil diperbarui',
+            'data' => $user->fresh()->append('profile_photo_url')
+        ]);
+    }
 }

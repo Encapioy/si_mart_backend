@@ -14,6 +14,7 @@ class User extends Authenticatable
     protected $fillable = [
         'member_id',
         'nama_lengkap',
+        'profile_photo',
         'username',
         'email',
         'password',
@@ -33,6 +34,18 @@ class User extends Authenticatable
         'remember_token',
         'pin', // Sembunyikan PIN agar tidak bocor di API
     ];
+
+    // Tambahkan Accessor (Otomatis generate URL lengkap)
+    // Jadi nanti di JSON muncul field baru: "profile_photo_url"
+    protected $appends = ['profile_photo_url'];
+
+    public function getProfilePhotoUrlAttribute()
+    {
+        if ($this->profile_photo) {
+            return asset('storage/' . $this->profile_photo);
+        }
+        return null; // Atau bisa return URL gambar default/avatar placeholder
+    }
 
     // Relasi: User ini adalah anak dari siapa? (Milik 1 Orang Tua)
     public function parent()

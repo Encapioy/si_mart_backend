@@ -39,7 +39,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']); // isi profile
     Route::post('/users/change-password', [UserController::class, 'changePassword']); // ganti password
     Route::post('/users/change-pin', [UserController::class, 'changePin']); // ganti pin
+    Route::post('/users/validate-pin', [UserController::class, 'validatePin']); // validasi pin
     Route::post('/users/profile', [UserController::class, 'updateProfile']); // update profile
+    Route::post('/users/lookup', [UserController::class, 'getUserPublicInfo']); // tujuan transfer
     Route::get('/history', [App\Http\Controllers\Api\HistoryController::class, 'index']); // riwayat semua transaksi
     Route::get('/home', [App\Http\Controllers\Api\UserDashboardController::class, 'home']); // Tab Home
     Route::get('/infos', [App\Http\Controllers\Api\UserDashboardController::class, 'infos']); // Tab Info
@@ -97,6 +99,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Dashboard Utama
     Route::get('/admin/stats', [AdminController::class, 'getDashboardStats']);
+    Route::post('/admin/change-pin', [AdminController::class, 'changePin']); // ganti pin
 
     // Manajemen User (Admin Pusat/Verifikator)
     Route::get('/admin/verifications', [AdminController::class, 'getPendingUsers']);

@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
@@ -221,5 +222,103 @@ class UserController extends Controller
             'message' => 'Profil berhasil diperbarui',
             'data' => $user->fresh()->append('profile_photo_url')
         ]);
+    }
+
+    // 7. CEK VALIDITAS PIN (UTILITY)
+    // Gunanya cuma buat ngecek: "PIN yang diketik user bener gak sih?"
+    public function validatePin(Request $request)
+    {
+        $request->validate([
+            'pin' => 'required|string|size:6',
+        ]);
+
+        $user = $request->user();
+
+        if ($user->pin === $request->pin) {
+            return response()->json([
+                'message' => 'PIN Benar',
+                'valid' => true
+            ]);
+        } else {
+            return response()->json([
+                'message' => 'PIN Salah',
+                'valid' => false
+            ], 401); // 401 Unauthorized
+        }
+    }
+
+    // 8. CARI INFO USER LAIN (UNTUK KONFIRMASI TRANSFER)
+    // Hanya mengembalikan Nama & Foto (Tanpa Saldo) demi privasi
+    public function getUserPublicInfo(Request $request)
+    {
+        $request->validate([
+            'identity_code' => 'required|string', // Bisa Username, NFC, atau Member ID
+        ]);
+
+        $kode = $request->identity_code;
+
+        // Cari User
+        $user = User::where('member_id', $kode)
+            ->orWhere('username', $kode)
+            ->orWhere('nfc_id', $kode)
+            ->first();
+
+        if (!$user) {
+            return response()->json(['message' => 'Tujuan tidak ditemukan'], 404);
+        }
+
+        return response()->json([
+            'message' => 'User ditemukan',
+            'data' => [
+                'nama_lengkap' => $user->nama_lengkap,
+                'username' => $user->username,
+                // URL Foto Profil (Pastikan accessor profile_photo_url sudah ada di Model User)
+                'profile_photo_url' => $user->profile_photo_url,
+            ]
+        ]);
+    }
+
+    // 9. GANTI PASSWORD
+    public function changePassword(Request $request)
+    {
+        $request->validate([
+            'current_password' => 'required',
+            'new_password' => 'required|string|min:6|confirmed', // butuh field: new_password_confirmation
+        ]);
+
+        $user = $request->user();
+
+        // Cek apakah password lama benar?
+        if (!Hash::check($request->current_password, $user->password)) {
+            return response()->json(['message' => 'Password lama salah!'], 400);
+        }
+
+        // Simpan Password Baru
+        $user->password = Hash::make($request->new_password);
+        $user->save();
+
+        return response()->json(['message' => 'Password berhasil diganti']);
+    }
+
+    // 10. GANTI PIN
+    public function changePin(Request $request)
+    {
+        $request->validate([
+            'current_pin' => 'required|string|size:6',
+            'new_pin' => 'required|string|size:6|confirmed', // butuh field: new_pin_confirmation
+        ]);
+
+        $user = $request->user();
+
+        // Cek apakah PIN lama benar?
+        if ($user->pin !== $request->current_pin) {
+            return response()->json(['message' => 'PIN lama salah!'], 400);
+        }
+
+        // Simpan PIN Baru
+        $user->pin = $request->new_pin;
+        $user->save();
+
+        return response()->json(['message' => 'PIN berhasil diganti']);
     }
 }

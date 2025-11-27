@@ -69,10 +69,16 @@ class AdminController extends Controller
             // Bisa pakai Username, NFC, atau Member ID (Pencarian Pintar)
             'identity_code' => 'required|string',
             'amount' => 'required|integer|min:1000',
+            'pin' => 'required|string|size:6',
         ]);
 
         if ($validator->fails())
             return response()->json($validator->errors(), 400);
+
+        // --- CEK PIN ADMIN ---
+        if ($request->user()->pin !== $request->pin) {
+            return response()->json(['message' => 'PIN Admin Salah! Transaksi ditolak.'], 401);
+        }
 
         // Cari User (Logic Pintar: Username / NFC / Member ID)
         $kode = $request->identity_code;
@@ -135,9 +141,34 @@ class AdminController extends Controller
         if ($request->user()->role !== 'keuangan')
             return response()->json(['message' => 'Unauthorized'], 403);
 
+        // --- VALIDASI PIN ADMIN ---
+        // Kita cek manual inputan PIN dari request
+        if (!$request->filled('pin')) {
+            return response()->json(['message' => 'PIN Admin wajib diisi!'], 400);
+        }
+
+        if ($request->user()->pin !== $request->pin) {
+            return response()->json(['message' => 'PIN Admin Salah!'], 401);
+        }
+
         $withdrawal = Withdrawal::find($id);
         if (!$withdrawal)
             return response()->json(['message' => 'Not found'], 404);
+
+        $admin = $request->user(); // Admin yang sedang login (Keuangan)
+
+        // Tambahkan nominal penarikan ke saldo Admin
+        $admin->saldo += $withdrawal->amount;
+        $admin->save();
+
+        // Catat Mutasi Masuk untuk Admin
+        $this->recordMutation(
+            $admin,
+            $withdrawal->amount,
+            'credit',
+            'withdraw_in',
+            'Dana masuk dari penarikan user ID: ' . $withdrawal->user_id
+        );
 
         // Jika metode transfer, Admin wajib upload bukti & boleh isi fee
         if ($withdrawal->bank_name != null) {
@@ -146,23 +177,30 @@ class AdminController extends Controller
                 'admin_fee' => 'nullable|integer',
             ]);
 
-            // Upload Bukti Admin
             $path = $request->file('bukti_transfer_admin')->store('withdraw_proofs', 'public');
             $withdrawal->bukti_transfer_admin = $path;
 
-            // Logika Biaya Admin (Potong saldo user LAGI)
+            // Logika Biaya Admin (Fee)
             $fee = $request->input('admin_fee', 0);
             if ($fee > 0) {
-                $user = User::find($withdrawal->user_id);
-
-                // Cek saldo user cukup gak buat bayar fee?
+                $user = \App\Models\User::find($withdrawal->user_id);
                 if ($user->saldo < $fee) {
-                    return response()->json(['message' => 'Gagal! Saldo user tidak cukup untuk bayar biaya admin.'], 400);
+                    // Rollback saldo admin dulu kalau gagal
+                    $admin->saldo -= $withdrawal->amount;
+                    $admin->save();
+                    return response()->json(['message' => 'Gagal! Saldo user kurang untuk biaya admin.'], 400);
                 }
 
-                $user->saldo -= $fee; // Potong fee
+                $user->saldo -= $fee;
                 $user->save();
+
+                // Catat fee user
                 $this->recordMutation($user, $fee, 'debit', 'admin_fee', 'Biaya Admin Penarikan');
+
+                // Fee juga masuk ke Admin (Opsional, biasanya jadi profit)
+                $admin->saldo += $fee;
+                $admin->save();
+                $this->recordMutation($admin, $fee, 'credit', 'admin_fee_income', 'Pendapatan Biaya Admin');
 
                 $withdrawal->admin_fee = $fee;
             }
@@ -171,7 +209,10 @@ class AdminController extends Controller
         $withdrawal->status = 'approved';
         $withdrawal->save();
 
-        return response()->json(['message' => 'Penarikan disetujui.']);
+        return response()->json([
+            'message' => 'Penarikan disetujui. Saldo kembali ke Admin.',
+            'sisa_saldo_admin' => $admin->saldo
+        ]);
     }
 
     // 3. TOLAK PENARIKAN (Opsional: Kalau ternyata merchant batal tarik)
@@ -427,5 +468,27 @@ class AdminController extends Controller
             'message' => 'Data user berhasil diperbarui',
             'data' => $targetUser
         ]);
+    }
+
+    // 12. ADMIN GANTI PIN SENDIRI
+    public function changePin(Request $request)
+    {
+        $request->validate([
+            'current_pin' => 'required|string|size:6',
+            'new_pin' => 'required|string|size:6|confirmed', // butuh new_pin_confirmation
+        ]);
+
+        $admin = $request->user(); // Admin yang login
+
+        // Cek PIN Lama
+        if ($admin->pin !== $request->current_pin) {
+            return response()->json(['message' => 'PIN lama salah!'], 400);
+        }
+
+        // Simpan PIN Baru
+        $admin->pin = $request->new_pin;
+        $admin->save();
+
+        return response()->json(['message' => 'PIN Admin berhasil diperbarui']);
     }
 }

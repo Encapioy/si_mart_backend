@@ -11,11 +11,13 @@ class Admin extends Model
     use HasFactory, HasApiTokens;
 
     protected $fillable = [
+        'identity_code',
         'username',
         'password',
         'nama_lengkap',
         'role',
-        'saldo'
+        'saldo',
+        'pin',
     ];
 
     // Admin juga bisa punya banyak produk
@@ -26,5 +28,7 @@ class Admin extends Model
 
     protected $hidden = [
         'password', // Sembunyikan password
+        'pin',
+        'remember_token',
     ];
 }

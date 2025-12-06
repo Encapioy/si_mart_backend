@@ -75,6 +75,47 @@ class AuthController extends Controller
         ], 201);
     }
 
+    // CEK KETERSEDIAAN USERNAME/EMAIL (REAL-TIME)
+    public function checkAvailability(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'username' => 'nullable|string|max:255',
+            'email' => 'nullable|string|email|max:255',
+        ]);
+
+        if ($validator->fails())
+            return response()->json($validator->errors(), 400);
+
+        // 1. Cek Username
+        if ($request->filled('username')) {
+            $isTaken = User::where('username', $request->username)->exists();
+            if ($isTaken) {
+                return response()->json([
+                    'status' => 'unavailable',
+                    'field' => 'username',
+                    'message' => 'Username sudah dipakai orang lain.'
+                ], 200); // Return 200 biar frontend gak error, tapi statusnya unavailable
+            }
+        }
+
+        // 2. Cek Email
+        if ($request->filled('email')) {
+            $isTaken = User::where('email', $request->email)->exists();
+            if ($isTaken) {
+                return response()->json([
+                    'status' => 'unavailable',
+                    'field' => 'email',
+                    'message' => 'Email sudah terdaftar.'
+                ], 200);
+            }
+        }
+
+        return response()->json([
+            'status' => 'available',
+            'message' => 'Data tersedia.'
+        ]);
+    }
+
     // 2. LOGIN (Bisa Admin, Bisa User)
     public function login(Request $request)
     {

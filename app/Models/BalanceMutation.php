@@ -15,6 +15,7 @@ class BalanceMutation extends Model
         'amount',
         'current_balance',
         'category',
+        'related_user_id',
         'description'
     ];
 }

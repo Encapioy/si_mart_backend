@@ -24,6 +24,7 @@ use App\Http\Controllers\Api\PreOrderController;
 // =================================================================
 
 Route::post('/register', [AuthController::class, 'register']);
+Route::post('/check-availability', [AuthController::class, 'checkAvailability']); // email/username udah di gunakan?
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::post('/login/verify-device', [AuthController::class, 'verifyNewDevice']); // Tahap 2 Login
 Route::get('/informations', [InformationController::class, 'index']); // List Info/Promo
@@ -73,6 +74,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/transactions/request-payment', [TransactionController::class, 'requestPaymentToUser']); // 1. Kasir kirim tagihan
     Route::get('/transactions/pending-bills', [TransactionController::class, 'getUserPendingBills']); // 2. User cek ada tagihan gak?
     Route::post('/transactions/confirm-payment', [TransactionController::class, 'confirmPaymentByUser']); // 3. User bayar
+    Route::get('/transactions/{code}', [TransactionController::class, 'getTransactionDetail']); // struk transaksi
     Route::get('/merchant/sales', [TransactionController::class, 'salesHistory']); // Dashboard Merchant
 
     // Fitur Transaksi QR (Metode 2)
@@ -89,6 +91,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/balance/request-topup', [BalanceController::class, 'requestTopUp']); // Upload Bukti
     Route::post('/balance/withdraw', [BalanceController::class, 'withdraw']); // Request Tarik
     Route::post('/balance/transfer', [BalanceController::class, 'transfer']); // P2P
+    Route::get('/balance/recent-transfers', [BalanceController::class, 'getRecentTransfers']); // recent transfer
 
     // --- KIOSK ---
     Route::post('/kiosk/check-balance', [UserController::class, 'checkBalance']); // NFC/QR Member
@@ -100,6 +103,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Dashboard Utama
     Route::get('/admin/stats', [AdminController::class, 'getDashboardStats']);
     Route::post('/admin/change-pin', [AdminController::class, 'changePin']); // ganti pin
+    Route::get('/admin/users', [AdminController::class, 'searchUsers']); // search user
 
     // Manajemen User (Admin Pusat/Verifikator)
     Route::get('/admin/verifications', [AdminController::class, 'getPendingUsers']);

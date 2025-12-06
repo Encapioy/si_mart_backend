@@ -11,7 +11,7 @@ class Controller extends BaseController
     use AuthorizesRequests, ValidatesRequests;
 
     // --- FUNGSI BANTUAN CATAT MUTASI ---
-    protected function recordMutation($user, $amount, $type, $category, $description)
+    protected function recordMutation($user, $amount, $type, $category, $description, $relatedUserId = null)
     {
         // Pastikan user/admin valid sebelum catat
         if ($user) {
@@ -21,7 +21,8 @@ class Controller extends BaseController
                 'type' => $type, // 'credit' (Masuk) atau 'debit' (Keluar)
                 'current_balance' => $user->saldo, // Saldo TERBARU setelah ditambah/dikurang
                 'category' => $category,
-                'description' => $description
+                'description' => $description,
+                'related_user_id' => $relatedUserId
             ]);
         }
     }

@@ -491,4 +491,28 @@ class AdminController extends Controller
 
         return response()->json(['message' => 'PIN Admin berhasil diperbarui']);
     }
+
+    // 13. CARI USER (GLOBAL SEARCH)
+    public function searchUsers(Request $request)
+    {
+        // Pastikan Admin
+        if (!($request->user() instanceof \App\Models\Admin)) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $keyword = $request->query('search');
+
+        if (!$keyword) {
+            return response()->json(['data' => []]);
+        }
+
+        $users = User::where('nama_lengkap', 'like', "%{$keyword}%")
+            ->orWhere('username', 'like', "%{$keyword}%")
+            ->orWhere('email', 'like', "%{$keyword}%")
+            ->orWhere('member_id', 'like', "%{$keyword}%")
+            ->limit(20) // Batasi 20 hasil biar gak berat
+            ->get();
+
+        return response()->json(['data' => $users]);
+    }
 }

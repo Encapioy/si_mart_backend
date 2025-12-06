@@ -121,14 +121,14 @@ class BalanceController extends Controller
             $sender->saldo -= $request->amount;
             $sender->save();
 
-            $this->recordMutation($sender, $request->amount, 'debit', 'transfer', 'Transfer ke ' . $receiver->nama_lengkap);
+            $this->recordMutation($sender, $request->amount, 'debit', 'transfer', 'Transfer ke ' . $receiver->nama_lengkap, $receiver->id);
 
 
             // Tambah Saldo Penerima
             $receiver->saldo += $request->amount;
             $receiver->save();
 
-            $this->recordMutation($receiver, $request->amount, 'credit', 'transfer', 'Terima saldo dari ' . $sender->nama_lengkap);
+            $this->recordMutation($receiver, $request->amount, 'credit', 'transfer', 'Terima saldo dari ' . $sender->nama_lengkap, $sender->id);
 
             // Tapi untuk sekarang return sukses aja cukup.
 
@@ -139,5 +139,33 @@ class BalanceController extends Controller
                 'penerima' => $receiver->nama_lengkap
             ]);
         });
+    }
+
+    // 4. GET RECENT TRANSFER USERS (5 Terakhir)
+    public function getRecentTransfers(Request $request)
+    {
+        $myId = $request->user()->id;
+
+        // Ambil 5 ID user terakhir yang berinteraksi (transfer in/out) dengan saya
+        // Kita gunakan pluck & unique agar tidak ada nama yang muncul dobel
+        $recentIds = \App\Models\BalanceMutation::where('user_id', $myId)
+            ->whereIn('category', ['transfer_out', 'transfer_in']) // Hanya kategori transfer
+            ->whereNotNull('related_user_id') // Pastikan ada lawannya
+            ->latest() // Urutkan dari yang paling baru
+            ->get()
+            ->pluck('related_user_id') // Ambil kolom ID temannya saja
+            ->unique() // Hapus duplikat (misal 2x transfer ke Udin, Udin cuma muncul sekali)
+            ->take(5); // Ambil 5 teratas
+
+        // Ambil Data User lengkap berdasarkan ID tadi
+        $users = User::whereIn('id', $recentIds)->get(['id', 'nama_lengkap', 'username', 'profile_photo']);
+
+        // Append URL foto agar frontend bisa menampilkan gambarnya
+        foreach ($users as $u) {
+            $u->append('profile_photo_url');
+        }
+
+        // Return values() agar index array-nya rapi (0, 1, 2...)
+        return response()->json(['data' => $users->values()]);
     }
 }

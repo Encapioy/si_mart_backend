@@ -636,4 +636,26 @@ class TransactionController extends Controller
             ]
         ]);
     }
+
+    // 4. LIHAT DETAIL TRANSAKSI (STRUK)
+    public function getTransactionDetail(Request $request, $code)
+    {
+        $user = $request->user();
+
+        // Cari transaksi berdasarkan CODE atau ID
+        // Pastikan transaksi itu milik user yang sedang login (keamanan)
+        $transaction = Transaction::where('transaction_code', $code)
+            ->where('user_id', $user->id)
+            ->with(['items.product']) // Load barang-barangnya
+            ->first();
+
+        if (!$transaction) {
+            return response()->json(['message' => 'Transaksi tidak ditemukan'], 404);
+        }
+
+        return response()->json([
+            'message' => 'Detail Transaksi',
+            'data' => $transaction
+        ]);
+    }
 }

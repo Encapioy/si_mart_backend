@@ -187,7 +187,7 @@ class UserController extends Controller
             // Pastikan unique mengecualikan ID user sendiri
             'username' => 'sometimes|required|string|max:255|unique:users,username,' . $user->id,
             'email' => 'sometimes|required|email|max:255|unique:users,email,' . $user->id,
-            // Validasi Foto (Opsional/Sometimes)
+            'no_hp' => 'sometimes|nullable|string|max:15',
             'profile_photo' => 'sometimes|image|max:2048', // Max 2MB
         ]);
 
@@ -196,7 +196,7 @@ class UserController extends Controller
 
         // 2. Siapkan data yang akan diupdate dari inputan text
         // Kita tampung dulu di array agar nanti bisa ditambah path foto jika ada
-        $dataToUpdate = $request->only(['nama_lengkap', 'username', 'email']);
+        $dataToUpdate = $request->only(['nama_lengkap', 'username', 'email', 'no_hp']);
 
         // 3. Cek: Apakah user mengupload foto baru?
         if ($request->hasFile('profile_photo')) {
@@ -224,30 +224,7 @@ class UserController extends Controller
         ]);
     }
 
-    // 7. CEK VALIDITAS PIN (UTILITY)
-    // Gunanya cuma buat ngecek: "PIN yang diketik user bener gak sih?"
-    public function validatePin(Request $request)
-    {
-        $request->validate([
-            'pin' => 'required|string|size:6',
-        ]);
-
-        $user = $request->user();
-
-        if ($user->pin === $request->pin) {
-            return response()->json([
-                'message' => 'PIN Benar',
-                'valid' => true
-            ]);
-        } else {
-            return response()->json([
-                'message' => 'PIN Salah',
-                'valid' => false
-            ], 401); // 401 Unauthorized
-        }
-    }
-
-    // 8. CARI INFO USER LAIN (UNTUK KONFIRMASI TRANSFER)
+    // 7. CARI INFO USER LAIN (UNTUK KONFIRMASI TRANSFER)
     // Hanya mengembalikan Nama & Foto (Tanpa Saldo) demi privasi
     public function getUserPublicInfo(Request $request)
     {
@@ -278,6 +255,25 @@ class UserController extends Controller
         ]);
     }
 
+    // 8. CEK VALIDITAS PIN (FIXED TYPE CASTING)
+    public function validatePin(Request $request)
+    {
+        $request->validate(['pin' => 'required']);
+
+        $user = $request->user();
+
+        // Pastikan keduanya string agar perbandingannya aman
+        // Trim() untuk menghapus spasi yang mungkin tidak sengaja terketik
+        $inputPin = trim((string) $request->pin);
+        $dbPin = trim((string) $user->pin);
+
+        if ($inputPin === $dbPin) {
+            return response()->json(['message' => 'PIN Benar', 'valid' => true]);
+        } else {
+            return response()->json(['message' => 'PIN Salah', 'valid' => false], 401);
+        }
+    }
+
     // 9. GANTI PASSWORD
     public function changePassword(Request $request)
     {
@@ -300,23 +296,27 @@ class UserController extends Controller
         return response()->json(['message' => 'Password berhasil diganti']);
     }
 
-    // 10. GANTI PIN
+
+    // 10. GANTI PIN (FIXED)
     public function changePin(Request $request)
     {
         $request->validate([
-            'current_pin' => 'required|string|size:6',
-            'new_pin' => 'required|string|size:6|confirmed', // butuh field: new_pin_confirmation
+            'current_pin' => 'required',
+            'new_pin' => 'required|string|size:6|confirmed',
         ]);
 
         $user = $request->user();
 
-        // Cek apakah PIN lama benar?
-        if ($user->pin !== $request->current_pin) {
+        $inputOldPin = trim((string) $request->current_pin);
+        $dbPin = trim((string) $user->pin);
+
+        // Cek PIN Lama
+        if ($inputOldPin !== $dbPin) {
             return response()->json(['message' => 'PIN lama salah!'], 400);
         }
 
         // Simpan PIN Baru
-        $user->pin = $request->new_pin;
+        $user->pin = trim((string) $request->new_pin);
         $user->save();
 
         return response()->json(['message' => 'PIN berhasil diganti']);

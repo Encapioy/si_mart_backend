@@ -65,7 +65,7 @@ class AdminController extends Controller
             return response()->json(['message' => 'Unauthorized. Hanya Admin Keuangan.'], 403);
         }
 
-        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
+        $validator = Validator::make($request->all(), [
             // Bisa pakai Username, NFC, atau Member ID (Pencarian Pintar)
             'identity_code' => 'required|string',
             'amount' => 'required|integer|min:1000',
@@ -183,7 +183,7 @@ class AdminController extends Controller
             // Logika Biaya Admin (Fee)
             $fee = $request->input('admin_fee', 0);
             if ($fee > 0) {
-                $user = \App\Models\User::find($withdrawal->user_id);
+                $user = User::find($withdrawal->user_id);
                 if ($user->saldo < $fee) {
                     // Rollback saldo admin dulu kalau gagal
                     $admin->saldo -= $withdrawal->amount;
@@ -433,8 +433,8 @@ class AdminController extends Controller
     public function updateUser(Request $request, $id)
     {
         // Pastikan yang akses adalah Admin Pusat
-        if ($request->user()->role !== 'pusat') {
-            return response()->json(['message' => 'Unauthorized. Hanya Admin Pusat.'], 403);
+        if ($request->user()->role !== ['pusat', 'developer']) {
+            return response()->json(['message' => 'Akses Ditolak. Hanya Admin Pusat atau Developer yang boleh mengubah data identitas user.'], 403);
         }
 
         $targetUser = User::find($id);
@@ -496,7 +496,7 @@ class AdminController extends Controller
     public function searchUsers(Request $request)
     {
         // Pastikan Admin
-        if (!($request->user() instanceof \App\Models\Admin)) {
+        if (!($request->user() instanceof Admin)) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -510,6 +510,7 @@ class AdminController extends Controller
             ->orWhere('username', 'like', "%{$keyword}%")
             ->orWhere('email', 'like', "%{$keyword}%")
             ->orWhere('member_id', 'like', "%{$keyword}%")
+            ->orWhere('no_hp', 'like', "%{$keyword}%")
             ->limit(20) // Batasi 20 hasil biar gak berat
             ->get();
 

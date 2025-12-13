@@ -321,4 +321,51 @@ class UserController extends Controller
 
         return response()->json(['message' => 'PIN berhasil diganti']);
     }
+
+    // 11. SYNC KONTAK (Cari Teman sesama Aplikasi)
+    public function syncContacts(Request $request)
+    {
+        // Frontend mengirim array nomor HP: ["08123456", "+628123456", ...]
+        $request->validate([
+            'contacts' => 'required|array',
+            'contacts.*' => 'string',
+        ]);
+
+        $inputContacts = $request->contacts;
+
+        // --- TAHAP NORMALISASI (Agar Pencarian Akurat) ---
+        // Karena user mungkin simpan nomor formatnya beda-beda (+62, 62, 08, pakai spasi, strip -)
+        // Kita bersihkan dulu menjadi format standar (misal: angka saja)
+
+        $cleanContacts = [];
+        foreach ($inputContacts as $number) {
+            // 1. Hapus karakter selain angka (spasi, strip, plus)
+            $clean = preg_replace('/[^0-9]/', '', $number);
+
+            // 2. Handle format +62 menjadi 0 (Opsional, tergantung format di database kamu)
+            // Asumsi di database kita simpan format '08...'
+            if (str_starts_with($clean, '62')) {
+                $clean = '0' . substr($clean, 2);
+            }
+
+            $cleanContacts[] = $clean;
+        }
+        // ------------------------------------------------
+
+        // Cari User yang no_hp-nya ada di daftar bersih tadi
+        // Kita juga pastikan tidak mencari diri sendiri
+        $matchedUsers = User::whereIn('no_hp', $cleanContacts)
+            ->where('id', '!=', $request->user()->id)
+            ->get(['id', 'nama_lengkap', 'username', 'no_hp', 'profile_photo']);
+
+        foreach ($matchedUsers as $u) {
+            $u->append('profile_photo_url');
+        }
+
+        return response()->json([
+            'message' => 'Kontak disinkronisasi',
+            'total_found' => $matchedUsers->count(),
+            'data' => $matchedUsers
+        ]);
+    }
 }

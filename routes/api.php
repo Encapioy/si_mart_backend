@@ -46,6 +46,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/history', [App\Http\Controllers\Api\HistoryController::class, 'index']); // riwayat semua transaksi
     Route::get('/home', [App\Http\Controllers\Api\UserDashboardController::class, 'home']); // Tab Home
     Route::get('/infos', [App\Http\Controllers\Api\UserDashboardController::class, 'infos']); // Tab Info
+    Route::post('/users/sync-contacts', [UserController::class, 'syncContacts']); // sync contact
 
     // --- FITUR KELUARGA ---
     Route::post('/users/pair', [UserController::class, 'pairChild']);

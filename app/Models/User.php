@@ -17,6 +17,7 @@ class User extends Authenticatable
         'profile_photo',
         'username',
         'email',
+        'no hp',
         'password',
         'pin',
         'nfc_id',

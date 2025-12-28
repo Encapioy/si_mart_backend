@@ -433,8 +433,10 @@ class AdminController extends Controller
     public function updateUser(Request $request, $id)
     {
         // Pastikan yang akses adalah Admin Pusat
-        if ($request->user()->role !== ['pusat', 'developer']) {
-            return response()->json(['message' => 'Akses Ditolak. Hanya Admin Pusat atau Developer yang boleh mengubah data identitas user.'], 403);
+        if (!in_array($request->user()->role, ['pusat', 'developer'])) {
+            return response()->json([
+                'message' => 'Akses Ditolak. Hanya Admin Pusat atau Developer yang boleh mengubah data identitas user.'
+            ], 403);
         }
 
         $targetUser = User::find($id);

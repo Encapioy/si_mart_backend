@@ -84,28 +84,29 @@ class BalanceController extends Controller
     public function transfer(Request $request)
     {
         $request->validate([
-            'target_identity_code' => 'required|string', // QR / Member ID Penerima
-            'amount' => 'required|integer|min:1000',     // Minimal transfer 1000
-            'pin' => 'required|string|size:6',           // PIN Pengirim
+            'target_identity_code' => 'required|string',
+            'amount' => 'required|integer|min:1000',
+            'pin' => 'required|string', // Validasi size bisa dihandle di logic bawah
         ]);
 
-        $sender = $request->user(); // Pengirim (Saya)
+        $sender = $request->user();
 
-        // 1. Cek PIN Pengirim
-        if ($sender->pin !== $request->pin) {
+        // 1. Cek PIN Pengirim (Pakai trim & string casting biar aman)
+        if (trim((string) $sender->pin) !== trim((string) $request->pin)) {
             return response()->json(['message' => 'PIN Salah'], 401);
         }
 
-        // 2. Cek Saldo Pengirim
+        // 2. Cek Saldo
         if ($sender->saldo < $request->amount) {
             return response()->json(['message' => 'Saldo tidak cukup'], 400);
         }
 
-        // 3. Cari Penerima (Pakai Logic Pencarian Pintar)
-        // Bisa scan QR (Member ID), Username, atau NFC
-        $receiver = User::where('member_id', $request->target_identity_code)
-            ->orWhere('username', $request->target_identity_code)
-            ->orWhere('nfc_id', $request->target_identity_code)
+        // 3. Cari Penerima (Update: Tambah pencarian via No HP)
+        $kode = $request->target_identity_code;
+        $receiver = User::where('member_id', $kode)
+            ->orWhere('username', $kode)
+            ->orWhere('nfc_id', $kode)
+            ->orWhere('no_hp', $kode) // <--- TAMBAHAN: Bisa transfer via No HP
             ->first();
 
         // Validasi Penerima
@@ -114,23 +115,36 @@ class BalanceController extends Controller
         if ($receiver->id == $sender->id)
             return response()->json(['message' => 'Tidak bisa transfer ke diri sendiri'], 400);
 
-
-        // 4. EKSEKUSI TRANSFER (Pakai DB Transaction biar aman)
+        // 4. EKSEKUSI TRANSFER
         return DB::transaction(function () use ($sender, $receiver, $request) {
-            // Kurangi Saldo Pengirim
+
+            // A. PENGIRIM (Debit)
             $sender->saldo -= $request->amount;
             $sender->save();
 
-            $this->recordMutation($sender, $request->amount, 'debit', 'transfer', 'Transfer ke ' . $receiver->nama_lengkap, $receiver->id);
+            // PERBAIKAN DI SINI: Category harus 'transfer_out' (bukan 'transfer')
+            $this->recordMutation(
+                $sender,
+                $request->amount,
+                'debit',
+                'transfer_out', // <--- PENTING!
+                'Transfer ke ' . $receiver->nama_lengkap,
+                $receiver->id
+            );
 
-
-            // Tambah Saldo Penerima
+            // B. PENERIMA (Kredit)
             $receiver->saldo += $request->amount;
             $receiver->save();
 
-            $this->recordMutation($receiver, $request->amount, 'credit', 'transfer', 'Terima saldo dari ' . $sender->nama_lengkap, $sender->id);
-
-            // Tapi untuk sekarang return sukses aja cukup.
+            // PERBAIKAN DI SINI: Category harus 'transfer_in' (bukan 'transfer')
+            $this->recordMutation(
+                $receiver,
+                $request->amount,
+                'credit',
+                'transfer_in', // <--- PENTING!
+                'Terima saldo dari ' . $sender->nama_lengkap,
+                $sender->id
+            );
 
             return response()->json([
                 'message' => 'Transfer Berhasil!',
@@ -146,26 +160,26 @@ class BalanceController extends Controller
     {
         $myId = $request->user()->id;
 
-        // Ambil 5 ID user terakhir yang berinteraksi (transfer in/out) dengan saya
-        // Kita gunakan pluck & unique agar tidak ada nama yang muncul dobel
         $recentIds = \App\Models\BalanceMutation::where('user_id', $myId)
-            ->whereIn('category', ['transfer_out', 'transfer_in']) // Hanya kategori transfer
-            ->whereNotNull('related_user_id') // Pastikan ada lawannya
-            ->latest() // Urutkan dari yang paling baru
+            ->whereIn('category', ['transfer_out', 'transfer_in']) // Ini akan cocok dengan kode transfer di atas
+            ->whereNotNull('related_user_id')
+            ->latest()
             ->get()
-            ->pluck('related_user_id') // Ambil kolom ID temannya saja
-            ->unique() // Hapus duplikat (misal 2x transfer ke Udin, Udin cuma muncul sekali)
-            ->take(5); // Ambil 5 teratas
+            ->pluck('related_user_id')
+            ->unique()
+            ->take(5);
 
-        // Ambil Data User lengkap berdasarkan ID tadi
+        // TAMBAHAN: Cek jika kosong, langsung return array kosong
+        if ($recentIds->isEmpty()) {
+            return response()->json(['data' => []]);
+        }
+
         $users = User::whereIn('id', $recentIds)->get(['id', 'nama_lengkap', 'username', 'profile_photo']);
 
-        // Append URL foto agar frontend bisa menampilkan gambarnya
         foreach ($users as $u) {
             $u->append('profile_photo_url');
         }
 
-        // Return values() agar index array-nya rapi (0, 1, 2...)
         return response()->json(['data' => $users->values()]);
     }
 }

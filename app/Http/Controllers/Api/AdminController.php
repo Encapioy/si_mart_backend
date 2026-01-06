@@ -113,6 +113,98 @@ class AdminController extends Controller
         ]);
     }
 
+    // 5. TOP UP SALDO USER (Admin Keuangan)
+    public function webTopUp(Request $request)
+    {
+        // Validasi Input
+        $validator = Validator::make($request->all(), [
+            'target_user' => 'required|string', // Bisa Email, HP, atau Member ID
+            'amount' => 'required|integer|min:1000', // Minimal topup 1000
+            'admin_username' => 'required|string', // Verifikasi Admin
+            'admin_pin' => 'required|string|size:6', // PIN Admin
+        ]);
+
+        if ($validator->fails())
+            return response()->json($validator->errors(), 400);
+
+        // 1. Cek User Tujuan
+        $target = $request->target_user;
+        $user = User::where('email', $target)
+            ->orWhere('no_hp', $target)
+            ->orWhere('member_id', $target)
+            ->orWhere('nfc_id', $target)
+            ->first();
+
+        if (!$user)
+            return response()->json(['message' => 'User tujuan tidak ditemukan!'], 404);
+
+        // 2. Cek Admin & Verifikasi PIN
+        // Kita cari admin berdasarkan username yang diinput
+        $admin = Admin::where('username', $request->admin_username)->first();
+
+        if (!$admin)
+            return response()->json(['message' => 'Username Admin salah!'], 401);
+
+        // Pastikan role-nya 'keuangan' atau 'pusat'
+        if (!in_array($admin->role, ['keuangan', 'pusat', 'developer'])) {
+            return response()->json(['message' => 'Anda tidak memiliki akses keuangan!'], 403);
+        }
+
+        // Cek PIN Admin (Manual Check karena ini aksi sensitif)
+        // Asumsi di database admin ada kolom 'pin'. Jika belum, tambahkan manual atau pakai password.
+        // Di sini saya asumsikan admin punya kolom 'pin' juga seperti user.
+        if ($admin->pin !== $request->admin_pin) {
+            return response()->json(['message' => 'PIN Admin Salah!'], 401);
+        }
+
+        // 3. Logika Transaksi
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($user, $admin, $request) {
+
+            $biayaAdmin = 100;
+            $nominalDiterimaUser = $request->amount - $biayaAdmin;
+
+            // A. Tambah Saldo User
+            $user->saldo += $nominalDiterimaUser;
+            $user->save();
+
+            // Mutasi User
+            $this->recordMutation(
+                $user,
+                $nominalDiterimaUser,
+                'credit',
+                'topup',
+                'Top Up via Admin Keuangan',
+                $admin->id // Related User = Admin
+            );
+
+            // B. Tambah Saldo Admin (Fee 100 Perak)
+            // Asumsi tabel admins punya kolom 'saldo'. Jika belum, buat migrasi:
+            // `php artisan make:migration add_saldo_to_admins_table`
+            $admin->saldo += $biayaAdmin;
+            $admin->save();
+
+            // Mutasi Admin
+            $this->recordMutation(
+                $admin,
+                $biayaAdmin,
+                'credit',
+                'fee_topup',
+                'Fee Top Up User: ' . $user->nama_lengkap
+            );
+
+            return response()->json([
+                'message' => 'Top Up Berhasil!',
+                'data' => [
+                    'penerima' => $user->nama_lengkap,
+                    'nominal_awal' => $request->amount,
+                    'biaya_admin' => $biayaAdmin,
+                    'masuk_saldo_user' => $nominalDiterimaUser,
+                    'admin_petugas' => $admin->nama_lengkap
+                ]
+            ]);
+        });
+    }
+
     // --- FITUR KEUANGAN (WITHDRAW UPDATE) ---
 
     // 1. LIHAT LIST PENGAJUAN (Hanya status Pending)

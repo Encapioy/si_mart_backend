@@ -122,6 +122,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/admin/topups', [AdminController::class, 'getPendingTopUps']);
     Route::put('/admin/topups/{id}/approve', [AdminController::class, 'approveTopUp']);
     Route::post('/admin/balance/topup-manual', [AdminController::class, 'manualTopUp']); // Tunai
+    Route::post('/admin/topup', [AdminController::class, 'webTopUp']);
 
     Route::get('/admin/withdrawals', [AdminController::class, 'getPendingWithdrawals']);
     // Gunakan POST untuk approve withdrawal karena ada upload bukti transfer admin

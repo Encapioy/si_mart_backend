@@ -205,48 +205,88 @@
     </div>
 
     <script>
-        function calculateTotal() {
+        <script>
+        // 1. Hitung Preview Nominal (UI Saja)
+                function calculateTotal() {
             const amount = document.getElementById('amount').value;
-            const preview = document.getElementById('preview_receive');
+                const preview = document.getElementById('preview_receive');
 
-            if (amount >= 100) {
+            if(amount >= 100) {
                 const received = amount - 100;
-                preview.innerText = "Rp " + received.toLocaleString('id-ID');
+                preview.innerText = "Rp " + parseInt(received).toLocaleString('id-ID');
             } else {
-                preview.innerText = "Rp 0";
+                    preview.innerText = "Rp 0";
             }
         }
 
-        function handleTopUp(e) {
-            e.preventDefault();
-            const btn = e.target.querySelector('button');
-            const alertBox = document.getElementById('alertBox');
-            const originalText = btn.innerHTML;
+                // 2. Handle Submit (REAL API CALL)
+                async function handleTopUp(e) {
+                    e.preventDefault();
 
-            // Loading
-            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
-            btn.classList.add('opacity-75', 'cursor-not-allowed');
+                const btn = e.target.querySelector('button');
+                const originalText = btn.innerHTML;
+                const alertBox = document.getElementById('alertBox');
 
-            // Simulasi Delay API
-            setTimeout(() => {
-                // Reset Button
-                btn.innerHTML = originalText;
-                btn.classList.remove('opacity-75', 'cursor-not-allowed');
+                // UI Loading State
+                btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> MEMPROSES...';
+                btn.classList.add('opacity-75', 'cursor-not-allowed');
+                btn.disabled = true;
 
-                // Show Success
-                alertBox.classList.remove('hidden', 'bg-red-50', 'text-red-600');
-                alertBox.classList.add('bg-emerald-50', 'text-emerald-600', 'border', 'border-emerald-100');
-                alertBox.innerHTML = '<i class="fa-solid fa-check-circle mr-2"></i> Top Up Berhasil Dikirim!';
+                // Ambil Data dari Form
+                const inputData = {
+                    target_user: document.getElementById('target_user').value,
+                amount: document.getElementById('amount').value,
+                admin_username: document.getElementById('admin_username').value,
+                admin_pin: document.getElementById('admin_pin').value,
+            };
+
+                try {
+                // --- INI BAGIAN PENTINGNYA (MENGHUBUNGKAN KE SERVER) ---
+                const response = await fetch('/api/admin/topup', {
+                    method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                // PENTING: Jika API butuh login, Token harus ada di sini.
+                // Jika kamu akses web ini setelah login Laravel biasa, cookie session akan otomatis terpakai (Sanctum SPA).
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                body: JSON.stringify(inputData)
+                });
+
+                const result = await response.json();
+
+                // Jika Server Membalas Error (Status bukan 200 OK)
+                if (!response.ok) {
+                    throw new Error(result.message || 'Terjadi kesalahan pada server');
+                }
+
+                // --- JIKA SUKSES ---
+                alertBox.className = "mt-4 p-3 rounded-lg text-xs font-medium text-center bg-emerald-50 text-emerald-600 border border-emerald-100";
+                alertBox.innerHTML = `<strong><i class="fa-solid fa-check-circle"></i> Berhasil!</strong> ${result.message}`;
                 alertBox.classList.remove('hidden');
 
                 // Reset Form
                 document.getElementById('topupForm').reset();
                 document.getElementById('preview_receive').innerText = "Rp 0";
 
-                // Hide alert after 3s
-                setTimeout(() => { alertBox.classList.add('hidden'); }, 3000);
-            }, 1500);
+            } catch (error) {
+                    // --- JIKA GAGAL ---
+                    console.error(error);
+                alertBox.className = "mt-4 p-3 rounded-lg text-xs font-medium text-center bg-red-50 text-red-600 border border-red-100";
+                alertBox.innerHTML = `<strong><i class="fa-solid fa-triangle-exclamation"></i> Gagal:</strong> ${error.message}`;
+                alertBox.classList.remove('hidden');
+            } finally {
+                // Kembalikan Tombol seperti semula
+                btn.innerHTML = originalText;
+                btn.classList.remove('opacity-75', 'cursor-not-allowed');
+                btn.disabled = false;
+
+                // Sembunyikan alert setelah 5 detik
+                setTimeout(() => { alertBox.classList.add('hidden'); }, 5000);
+            }
         }
+        </script>
     </script>
 </body>
 

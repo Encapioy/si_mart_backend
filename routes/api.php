@@ -29,6 +29,9 @@ Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::post('/login/verify-device', [AuthController::class, 'verifyNewDevice']); // Tahap 2 Login
 Route::get('/informations', [InformationController::class, 'index']); // List Info/Promo
 
+// BAKAL TESTING DOANG
+Route::post('/admin/topup', [AdminController::class, 'webTopUp']);
+
 // =================================================================
 // 2. PROTECTED ROUTES (Butuh Token: User / Merchant / Admin)
 // =================================================================
@@ -122,7 +125,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/admin/topups', [AdminController::class, 'getPendingTopUps']);
     Route::put('/admin/topups/{id}/approve', [AdminController::class, 'approveTopUp']);
     Route::post('/admin/balance/topup-manual', [AdminController::class, 'manualTopUp']); // Tunai
-    Route::post('/admin/topup', [AdminController::class, 'webTopUp']);
 
     Route::get('/admin/withdrawals', [AdminController::class, 'getPendingWithdrawals']);
     // Gunakan POST untuk approve withdrawal karena ada upload bukti transfer admin

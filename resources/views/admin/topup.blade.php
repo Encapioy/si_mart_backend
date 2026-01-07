@@ -205,63 +205,60 @@
     </div>
 
     <script>
-        <script>
-        // 1. Hitung Preview Nominal (UI Saja)
-                function calculateTotal() {
+        // 1. Hitung Preview Nominal
+        function calculateTotal() {
             const amount = document.getElementById('amount').value;
-                const preview = document.getElementById('preview_receive');
+            const preview = document.getElementById('preview_receive');
 
-            if(amount >= 100) {
+            if (amount >= 100) {
                 const received = amount - 100;
                 preview.innerText = "Rp " + parseInt(received).toLocaleString('id-ID');
             } else {
-                    preview.innerText = "Rp 0";
+                preview.innerText = "Rp 0";
             }
         }
 
-                // 2. Handle Submit (REAL API CALL)
-                async function handleTopUp(e) {
-                    e.preventDefault();
+        // 2. Handle Submit (REAL REQUEST)
+        async function handleTopUp(e) {
+            e.preventDefault();
 
-                const btn = e.target.querySelector('button');
-                const originalText = btn.innerHTML;
-                const alertBox = document.getElementById('alertBox');
+            const btn = e.target.querySelector('button');
+            const originalText = btn.innerHTML;
+            const alertBox = document.getElementById('alertBox');
 
-                // UI Loading State
-                btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> MEMPROSES...';
-                btn.classList.add('opacity-75', 'cursor-not-allowed');
-                btn.disabled = true;
+            // Loading State
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> MEMPROSES...';
+            btn.classList.add('opacity-75', 'cursor-not-allowed');
+            btn.disabled = true;
 
-                // Ambil Data dari Form
-                const inputData = {
-                    target_user: document.getElementById('target_user').value,
+            // Ambil Data Form
+            const inputData = {
+                target_user: document.getElementById('target_user').value,
                 amount: document.getElementById('amount').value,
                 admin_username: document.getElementById('admin_username').value,
                 admin_pin: document.getElementById('admin_pin').value,
             };
 
-                try {
-                // --- INI BAGIAN PENTINGNYA (MENGHUBUNGKAN KE SERVER) ---
+            try {
+                // TEMBAK KE API VPS (Pastikan URL-nya benar)
+                // Karena kita di server yang sama, pakai relative path '/api/admin/topup' aman.
                 const response = await fetch('/api/admin/topup', {
                     method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                // PENTING: Jika API butuh login, Token harus ada di sini.
-                // Jika kamu akses web ini setelah login Laravel biasa, cookie session akan otomatis terpakai (Sanctum SPA).
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                        // KITA HAPUS HEADER 'Authorization' KARENA SEDANG DIMATIKAN
                     },
-                body: JSON.stringify(inputData)
+                    body: JSON.stringify(inputData)
                 });
 
                 const result = await response.json();
 
-                // Jika Server Membalas Error (Status bukan 200 OK)
                 if (!response.ok) {
-                    throw new Error(result.message || 'Terjadi kesalahan pada server');
+                    throw new Error(result.message || 'Terjadi kesalahan server');
                 }
 
-                // --- JIKA SUKSES ---
+                // SUKSES
                 alertBox.className = "mt-4 p-3 rounded-lg text-xs font-medium text-center bg-emerald-50 text-emerald-600 border border-emerald-100";
                 alertBox.innerHTML = `<strong><i class="fa-solid fa-check-circle"></i> Berhasil!</strong> ${result.message}`;
                 alertBox.classList.remove('hidden');
@@ -271,22 +268,19 @@
                 document.getElementById('preview_receive').innerText = "Rp 0";
 
             } catch (error) {
-                    // --- JIKA GAGAL ---
-                    console.error(error);
+                // GAGAL
+                console.error(error);
                 alertBox.className = "mt-4 p-3 rounded-lg text-xs font-medium text-center bg-red-50 text-red-600 border border-red-100";
                 alertBox.innerHTML = `<strong><i class="fa-solid fa-triangle-exclamation"></i> Gagal:</strong> ${error.message}`;
                 alertBox.classList.remove('hidden');
             } finally {
-                // Kembalikan Tombol seperti semula
+                // Reset Tombol
                 btn.innerHTML = originalText;
                 btn.classList.remove('opacity-75', 'cursor-not-allowed');
                 btn.disabled = false;
-
-                // Sembunyikan alert setelah 5 detik
                 setTimeout(() => { alertBox.classList.add('hidden'); }, 5000);
             }
         }
-        </script>
     </script>
 </body>
 

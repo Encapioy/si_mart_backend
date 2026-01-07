@@ -183,15 +183,6 @@ class AdminController extends Controller
             $admin->saldo += $biayaAdmin;
             $admin->save();
 
-            // Mutasi Admin
-            $this->recordMutation(
-                $admin,
-                $biayaAdmin,
-                'credit',
-                'fee_topup',
-                'Fee Top Up User: ' . $user->nama_lengkap
-            );
-
             return response()->json([
                 'message' => 'Top Up Berhasil!',
                 'data' => [

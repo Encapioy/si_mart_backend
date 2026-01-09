@@ -704,7 +704,7 @@ class TransactionController extends Controller
                 'merchant_id' => $merchant->id,
                 'type' => 'PAYMENT', // Tipe transaksi
                 'amount' => $amount,
-                'status' => 'success',
+                'status' => 'paid',
                 'description' => 'Pembayaran ke ' . $merchant->shop_name,
                 'reference_id' => 'TRX-' . time() . rand(100, 999)
             ]);

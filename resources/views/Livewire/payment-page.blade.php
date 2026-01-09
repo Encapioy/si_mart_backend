@@ -69,9 +69,8 @@
             </a>
         </div>
     </form>
-</div>
 
-<style>
+    <style>
     /* Chrome, Safari, Edge, Opera */
     .no-spin::-webkit-outer-spin-button,
     .no-spin::-webkit-inner-spin-button {
@@ -83,3 +82,6 @@
         -moz-appearance: textfield;
     }
 </style>
+
+</div>
+

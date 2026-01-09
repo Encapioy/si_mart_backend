@@ -13,49 +13,56 @@
     </div>
 
     <script>
-        document.addEventListener('livewire:initialized', () => { // Ganti jadi livewire:initialized biar aman
-            const onScanSuccess = (decodedText, decodedResult) => {
-                // 1. DEBUGGING: Munculkan isi QR di layar biar ketahuan isinya apa
-                console.log("Hasil Scan:", decodedText);
+    // Gunakan event listener Livewire biar lebih stabil saat loading
+    document.addEventListener('livewire:initialized', () => {
 
-                // Cek apakah formatnya benar
-                if (decodedText.startsWith('SIPAY:STORE:')) {
-                    // Matikan kamera dulu biar gak berat
-                    html5QrcodeScanner.clear();
+        const onScanSuccess = (decodedText, decodedResult) => {
+            // DEBUG: Cek isi QR di Console browser (opsional)
+            console.log("QR Terbaca:", decodedText);
 
-                    // Ambil ID (Split tulisan berdasarkan titik dua)
-                    let parts = decodedText.split(':');
-                    let storeId = parts[2]; // Ambil angka ID-nya
+            // Format yang diharapkan: SIPAY:STORE:45:NamaToko
+            if (decodedText.startsWith('SIPAY:STORE:')) {
+                // 1. Matikan kamera biar gak berat
+                html5QrcodeScanner.clear();
 
-                    // Redirect
-                    window.location.href = "/pay/" + storeId;
-                }
-                // 2. JIKA FORMAT SALAH (Misal user scan QR GoPay atau QR link biasa)
-                else {
-                    alert("QR Code Terbaca: " + decodedText + "\n\nTapi format salah! Harus diawali SIPAY:STORE:");
-                }
-            };
+                // 2. Ambil ID Toko (Split string berdasarkan titik dua)
+                let parts = decodedText.split(':');
+                let storeId = parts[2]; // Index 2 adalah ID-nya
 
-            const onScanFailure = (error) => {
-                // Biarkan kosong biar gak spam error di console saat kamera lagi nyari fokus
-                // console.warn(`Code scan error = ${error}`);
-            };
+                // 3. Pindah ke halaman bayar
+                window.location.href = "/pay/" + storeId;
+            }
+            else {
+                // INI BAGIAN PENTING BUAT DEBUGGING
+                // Kalau QR terbaca tapi format salah, dia bakal teriak.
+                // Jadi kamu tau kameranya jalan, cuma QR-nya yang salah.
+                alert("QR Code Terbaca: " + decodedText + "\n\nFormat salah! QR Toko SI Pay harus diawali 'SIPAY:STORE:'");
+            }
+        };
 
-            // Config kamera
-            let config = {
-                fps: 10,
-                qrbox: { width: 250, height: 250 },
-                aspectRatio: 1.0
+        const onScanFailure = (error) => {
+            // Biarkan kosong atau console.warn aja biar gak spam alert saat kamera cari fokus
+            // console.warn(`Code scan error = ${error}`);
+        };
 
-                videoConstraints: {
-                    facingMode: "environment"
-                }
-            };
+        // --- KONFIGURASI SCANNER ---
+        let config = {
+            fps: 10, // Scan 10 frame per detik
+            qrbox: { width: 250, height: 250 }, // Ukuran kotak fokus
 
-            const html5QrcodeScanner = new Html5QrcodeScanner("reader", config, /* verbose= */ false);
-            html5QrcodeScanner.render(onScanSuccess, onScanFailure);
-        });
-    </script>
+            // PAKSA KAMERA BELAKANG
+            videoConstraints: {
+                facingMode: "environment"
+            }
+        };
+
+        // Inisialisasi Scanner
+        // Parameter ketiga 'false' artinya jangan tampilkan pesan log yang berisik
+        const html5QrcodeScanner = new Html5QrcodeScanner("reader", config, false);
+
+        html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+    });
+</script>
     <style>
         #reader {
             border: none !important;

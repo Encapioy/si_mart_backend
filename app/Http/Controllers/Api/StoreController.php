@@ -191,28 +191,27 @@ class StoreController extends Controller
     // 7. GENERATE QR STORE
     public function generateQrCode(Request $request, $id)
     {
-        // 1. Cari Toko berdasarkan ID
+        // 1. Cari Toko
         $store = Store::find($id);
 
-        // 2. Validasi: Pastikan toko ada dan milik user yang login
+        // 2. Validasi
         if (!$store || $store->user_id != $request->user()->id) {
             return response()->json(['message' => 'Toko tidak ditemukan atau bukan milik Anda'], 404);
         }
 
-        // 3. Racik Payload QR Baru
-        // Format: SIPAY:STORE:{STORE_ID}:{STORE_NAME}
-        // Perhatikan kata kuncinya ganti jadi 'STORE'
+        // 3. Racik Payload (JANGAN DI-ENCODE BIAR BISA DIBACA SCANNER)
+        // Pastikan di Model Store sudah ada accessor getNameAttribute ya (karena kolom aslinya nama_toko)
         $rawData = "SIPAY:STORE:" . $store->id . ":" . $store->name;
-
-        // Encode Base64 biar rapi
-        $payload = base64_encode($rawData);
 
         return response()->json([
             'status' => 'success',
             'data' => [
                 'store_id' => $store->id,
                 'store_name' => $store->name,
-                'qr_payload' => $payload, // String ini yang nanti jadi gambar di Flutter
+
+                // PERUBAHAN DISINI: Langsung kirim rawData, jangan di-base64
+                'qr_payload' => $rawData,
+
                 'description' => 'Scan QR ini untuk membayar di ' . $store->name
             ]
         ]);

@@ -194,25 +194,72 @@ class StoreController extends Controller
         // 1. Cari Toko
         $store = Store::find($id);
 
-        // 2. Validasi
+        // 2. Validasi (Toko ada & Milik User yg login)
         if (!$store || $store->user_id != $request->user()->id) {
             return response()->json(['message' => 'Toko tidak ditemukan atau bukan milik Anda'], 404);
         }
 
-        // 3. Racik Payload (JANGAN DI-ENCODE BIAR BISA DIBACA SCANNER)
-        // Pastikan di Model Store sudah ada accessor getNameAttribute ya (karena kolom aslinya nama_toko)
-        $rawData = "SIPAY:STORE:" . $store->id . ":" . $store->name;
+        // 3. Racik Payload
+        // PERBAIKAN: Ganti $store->name jadi $store->nama_toko
+        // TIPS: Kita hapus karakter ':' di nama toko biar gak ngerusak format separator payload
+        $cleanName = str_replace(':', '', $store->nama_toko);
+
+        $rawData = "SIPAY:STORE:" . $store->id . ":" . $cleanName;
 
         return response()->json([
             'status' => 'success',
             'data' => [
                 'store_id' => $store->id,
-                'store_name' => $store->name,
 
-                // PERUBAHAN DISINI: Langsung kirim rawData, jangan di-base64
+                // PERBAIKAN: Gunakan nama_toko
+                'store_name' => $store->nama_toko,
+
                 'qr_payload' => $rawData,
 
-                'description' => 'Scan QR ini untuk membayar di ' . $store->name
+                'description' => 'Scan QR ini untuk membayar di ' . $store->nama_toko
+            ]
+        ]);
+    }
+
+    // 8. PEMASUKAN TOKO
+    public function getIncomeReport(Request $request)
+    {
+        $user = $request->user();
+
+        // 1. Ambil Toko milik User yg login
+        // Asumsi relasi user->store one-to-one atau user pilih toko aktif
+        $store = Store::where('user_id', $user->id)->first();
+
+        if (!$store) {
+            return response()->json(['message' => 'Anda tidak memiliki toko'], 404);
+        }
+
+        // 2. Query Data Hari Ini
+        $todayTransactions = Transaction::where('store_id', $store->id) // Pastikan kolom store_id sudah ada di migrationmu nanti
+            ->where('status', 'paid')
+            ->whereDate('created_at', Carbon::today())
+            ->get();
+
+        // 3. Query Data Bulan Ini
+        $monthTransactions = Transaction::where('store_id', $store->id)
+            ->where('status', 'paid')
+            ->whereMonth('created_at', Carbon::now()->month)
+            ->whereYear('created_at', Carbon::now()->year)
+            ->get();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'today' => [
+                    'total_income' => $todayTransactions->sum('total_bayar'), // Pake kolom total_bayar
+                    'transaction_count' => $todayTransactions->count(),
+                    'details' => $todayTransactions // List transaksinya
+                ],
+                'this_month' => [
+                    'total_income' => $monthTransactions->sum('total_bayar'),
+                    'transaction_count' => $monthTransactions->count(),
+                    'details' => $monthTransactions
+                ]
             ]
         ]);
     }

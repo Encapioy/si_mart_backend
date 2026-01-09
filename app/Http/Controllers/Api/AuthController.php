@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use App\Models\UserDevice;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Cache;
 
 class AuthController extends Controller
 {
@@ -326,5 +328,85 @@ class AuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
         return redirect('/login');
+    }
+
+    // 5. KIRIM OTP KE EMAIL
+    public function sendOtp(Request $request)
+    {
+        $request->validate(['email' => 'required|email|exists:users,email']);
+
+        // 1. Generate OTP 6 Digit
+        $otp = rand(100000, 999999);
+        $email = $request->email;
+
+        // 2. Simpan di Cache selama 5 menit
+        // Key: "otp_reset_email@gmail.com"
+        Cache::put('otp_reset_' . $email, $otp, 300);
+
+        // 3. Kirim Email (Pake Raw biar cepet, bisa diganti Mailable view nanti)
+        try {
+            Mail::raw("Kode OTP Reset Anda adalah: $otp. Jangan berikan ke siapapun. Berlaku 5 menit.", function ($message) use ($email) {
+                $message->to($email)
+                    ->subject('Kode OTP Reset SI Pay');
+            });
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Gagal kirim email. Cek konfigurasi SMTP.'], 500);
+        }
+
+        return response()->json(['status' => 'success', 'message' => 'OTP telah dikirim ke email']);
+    }
+
+    // 6. RESET PASSWORD (Verifikasi OTP + Ganti Pass)
+    public function resetPassword(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email|exists:users,email',
+            'otp' => 'required|numeric',
+            'new_password' => 'required|min:6|confirmed'
+        ]);
+
+        // 1. Cek OTP
+        $cachedOtp = Cache::get('otp_reset_' . $request->email);
+        if (!$cachedOtp || $cachedOtp != $request->otp) {
+            return response()->json(['message' => 'OTP Salah atau Kedaluwarsa'], 400);
+        }
+
+        // 2. Update Password
+        $user = User::where('email', $request->email)->first();
+        $user->password = Hash::make($request->new_password);
+        $user->save();
+
+        // 3. Hapus OTP
+        Cache::forget('otp_reset_' . $request->email);
+
+        return response()->json(['status' => 'success', 'message' => 'Password berhasil diubah']);
+    }
+
+    // 7. RESET PIN (Verifikasi OTP + Ganti PIN)
+    public function resetPin(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email|exists:users,email',
+            'otp' => 'required|numeric',
+            'new_pin' => 'required|digits:6'
+        ]);
+
+        // 1. Cek OTP
+        $cachedOtp = Cache::get('otp_reset_' . $request->email);
+        if (!$cachedOtp || $cachedOtp != $request->otp) {
+            return response()->json(['message' => 'OTP Salah atau Kedaluwarsa'], 400);
+        }
+
+        // 2. Update PIN
+        $user = User::where('email', $request->email)->first();
+        // PERHATIAN: Ini Plain Text sesuai request terakhir kamu.
+        // Kalau mau hash, ganti jadi Hash::make($request->new_pin)
+        $user->pin = $request->new_pin;
+        $user->save();
+
+        // 3. Hapus OTP
+        Cache::forget('otp_reset_' . $request->email);
+
+        return response()->json(['status' => 'success', 'message' => 'PIN berhasil diubah']);
     }
 }

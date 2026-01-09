@@ -31,6 +31,11 @@ Route::post('/login/verify-device', [AuthController::class, 'verifyNewDevice']);
 Route::post('/check-availability', [AuthController::class, 'checkAvailability']); // Cek email/username
 Route::get('/informations', [InformationController::class, 'index']); // Berita/Info Publik
 
+// Lupa Password & PIN
+Route::post('/auth/send-otp', [AuthController::class, 'sendOtp']);       // Kirim OTP ke Email
+Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']); // Reset Password
+Route::post('/auth/reset-pin', [AuthController::class, 'resetPin']);           // Reset PIN
+
 // [DEV ONLY] Route Testing
 Route::post('/admin/topup', [AdminController::class, 'webTopUp']);
 
@@ -38,6 +43,11 @@ Route::post('/admin/topup', [AdminController::class, 'webTopUp']);
 // GROUP 2: PROTECTED ROUTES (Butuh Token)
 // =================================================================
 Route::middleware('auth:sanctum')->group(function () {
+
+    // CEK TOKEN
+    Route::get('/auth/check-token', function () {
+        return response()->json(['status' => 'success', 'is_valid' => 1]);
+    });
 
     // --- A. USER PROFILE & SECURITY ---
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -67,6 +77,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/stores/my', [StoreController::class, 'myStores']); // List Toko Saya
     Route::get('/stores/my/{id}/dashboard', [StoreController::class, 'myStoreDetail']); // Dashboard Toko
     Route::post('/stores/{id}/update', [StoreController::class, 'update']); // Update toko
+    Route::get('/stores/income-report', [StoreController::class, 'getIncomeReport']); // Laporan pemasukan toko
     Route::get('/stores/{id}/qr', [StoreController::class, 'generateQrCode']); // Generate Qr toko
 
     Route::get('/merchant/qr', [MerchantController::class, 'generateQrCode']); // QR Toko

@@ -723,7 +723,66 @@ class TransactionController extends Controller
         }
     }
 
-    // 6. BAYAR KE TOKO MERCHANT DENGAN QR
+    // 6. IDENTIFICATION PAYMENT
+    public function checkStoreQr(Request $request)
+    {
+        // 1. Ambil QR
+        $qrPayload = $request->input('qr_payload');
+
+        // 2. Validasi Format
+        if (!$qrPayload || !str_starts_with($qrPayload, 'SIPAY:STORE:')) {
+            return response()->json(['message' => 'QR Code tidak valid'], 400);
+        }
+
+        try {
+            // 3. Pecah Data
+            $parts = explode(':', $qrPayload);
+            if (count($parts) < 3)
+                throw new \Exception("Struktur QR rusak");
+
+            $storeId = $parts[2];
+
+            // 4. Cari Toko (PENTING: Ganti 'user' jadi 'owner')
+            $store = Store::with('owner')->find($storeId);
+
+            if (!$store) {
+                return response()->json(['message' => 'Toko tidak ditemukan'], 404);
+            }
+
+            // 5. Ambil Nama Merchant (PENTING: Panggil lewat relation 'owner')
+            // Kita pakai null check (?) jaga-jaga kalau usernya udah dihapus admin
+            $merchantName = $store->owner ? $store->owner->nama_lengkap : 'Merchant Tidak Diketahui';
+
+            // 6. Handle Gambar
+            $imageUrl = $store->gambar
+                ? asset('storage/' . $store->gambar)
+                : 'https://ui-avatars.com/api/?name=' . urlencode($store->nama_toko) . '&background=random';
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Toko ditemukan',
+                'data' => [
+                    'store_id' => $store->id,
+                    'store_name' => $store->nama_toko,  // Sesuai DB
+                    'category' => $store->kategori,   // Sesuai DB
+                    'description' => $store->deskripsi,  // Sesuai DB
+                    'location' => $store->lokasi,     // Sesuai DB
+                    'is_open' => $store->is_open,    // Sesuai DB
+
+                    'merchant_name' => $merchantName,      // <-- INI YANG SUDAH DIBENERIN
+                    'store_image' => $imageUrl,
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Server Error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // 7. BAYAR KE TOKO MERCHANT DENGAN QR
     public function payStoreQr(Request $request)
     {
         // 1. Validasi Input
@@ -735,22 +794,23 @@ class TransactionController extends Controller
 
         $user = $request->user();
 
-        // 2. CEK PIN USER (WAJIB ADA)
-        // Asumsi PIN di database di-hash (bcrypt). Kalau plain text, pakai == biasa.
-        if (!Hash::check($request->pin, $user->pin)) {
+        // 2. CEK PIN (VERSI PLAIN TEXT)
+        // Karena kamu minta tanpa Hash, pakai operator !=
+        if ($request->pin != $user->pin) {
             return response()->json(['message' => 'PIN Salah!'], 401);
         }
 
-        // 3. CEK SALDO CUKUP GAK? (WAJIB ADA)
-        // Pastikan nama kolom di DB kamu 'saldo' atau 'balance'. Sesuaikan ya.
+        // 3. CEK SALDO
         if ($user->saldo < $request->amount) {
             return response()->json(['message' => 'Saldo tidak mencukupi'], 400);
         }
 
-        $store = \App\Models\Store::find($request->store_id);
+        // Cari Toko & Pemilik
+        $store = Store::find($request->store_id);
 
-        // Cari Pemilik Toko
+        // Pastikan ambil user lewat user_id di toko
         $merchantUser = User::find($store->user_id);
+
         if (!$merchantUser) {
             return response()->json(['message' => 'Merchant toko ini tidak valid'], 404);
         }
@@ -766,25 +826,25 @@ class TransactionController extends Controller
             $merchantUser->saldo += $request->amount;
             $merchantUser->save();
 
-            // C. Catat Riwayat
+            // C. Catat Riwayat (SESUAI KOLOM DATABASE KAMU)
+            // Kolom: transaction_code, user_id, total_bayar, status, expired_at, tanggal_transaksi
             $trx = Transaction::create([
+                'transaction_code' => 'TRX-' . time() . rand(100, 999), // Pengganti reference_code
                 'user_id' => $user->id,
-                'merchant_id' => $merchantUser->id,
-                'store_id' => $store->id, // Data masuk ke Toko
-                'amount' => $request->amount,
-                'type' => 'payment',
-                'status' => 'paid',
-                'description' => 'Pembayaran ke ' . $store->name,
-                'reference_code' => 'TRX-' . time() . rand(100, 999)
+                'total_bayar' => $request->amount, // Pengganti amount
+                'status' => 'paid',           // Pastikan enum DB support 'paid'
+                'tanggal_transaksi' => now(),            // Kolom manual tanggal
+                'expired_at' => null,             // Nullable
             ]);
 
             DB::commit();
 
             return response()->json([
-                'status' => 'paid',
-                'message' => 'Pembayaran berhasil ke ' . $store->name,
+                'status' => 'success',
+                // PERBAIKAN: Ganti $store->name jadi $store->nama_toko
+                'message' => 'Pembayaran berhasil ke ' . $store->nama_toko,
                 'data' => $trx,
-                'sisa_saldo' => $user->saldo // Return sisa saldo biar UI langsung update
+                'sisa_saldo' => $user->saldo
             ]);
 
         } catch (\Exception $e) {
@@ -793,63 +853,5 @@ class TransactionController extends Controller
         }
     }
 
-    // 7. IDENTIFICATION PAYMENT
-    public function checkStoreQr(Request $request)
-    {
-        // 1. Ambil data payload dari body request
-        $qrPayload = $request->input('qr_payload'); // Contoh: "SIPAY:STORE:45:KantinBarokah"
 
-        // 2. Validasi Format QR
-        // Kita pastikan depannya benar-benar punya kita
-        if (!$qrPayload || !str_starts_with($qrPayload, 'SIPAY:STORE:')) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'QR Code tidak valid atau bukan format SI Pay'
-            ], 400);
-        }
-
-        // 3. Pecah Payload (Parsing)
-        try {
-            $parts = explode(':', $qrPayload);
-            $storeId = $parts[2]; // Ambil ID (posisi index ke-2)
-        } catch (\Exception $e) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Format data QR rusak'
-            ], 400);
-        }
-
-        // 4. Cari Toko di Database
-        // Kita pakai 'with' user untuk mengambil nama pemilik merchant
-        $store = Store::with('user')->find($storeId);
-
-        if (!$store) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Toko tidak ditemukan di sistem'
-            ], 404);
-        }
-
-        // 5. Return Data Detail Toko (Untuk ditampilkan di Popup Konfirmasi)
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Toko ditemukan',
-            'data' => [
-                'store_id' => $store->id,
-                'store_name' => $store->name,
-
-                // Asumsi kamu punya kolom 'category' di tabel stores.
-                // Kalau tidak ada, ganti string statis atau hapus.
-                'category' => $store->category ?? 'Umum',
-
-                // Mengambil nama pemilik dari relasi user
-                'merchant_name' => $store->user->nama_lengkap ?? 'Unknown',
-
-                // Foto Toko (Handle jika null)
-                'store_image' => $store->image
-                    ? asset('storage/' . $store->image)
-                    : 'https://ui-avatars.com/api/?name=' . urlencode($store->name) . '&background=random',
-            ]
-        ]);
-    }
 }

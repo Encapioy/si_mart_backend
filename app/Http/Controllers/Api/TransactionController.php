@@ -9,6 +9,7 @@ use App\Models\TransactionItem;
 use App\Models\Product;
 use App\Models\User;
 use App\Models\Merchant;
+use App\Models\Store;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
@@ -790,5 +791,65 @@ class TransactionController extends Controller
             DB::rollBack();
             return response()->json(['message' => 'Transaksi gagal: ' . $e->getMessage()], 500);
         }
+    }
+
+    // 7. IDENTIFICATION PAYMENT
+    public function checkStoreQr(Request $request)
+    {
+        // 1. Ambil data payload dari body request
+        $qrPayload = $request->input('qr_payload'); // Contoh: "SIPAY:STORE:45:KantinBarokah"
+
+        // 2. Validasi Format QR
+        // Kita pastikan depannya benar-benar punya kita
+        if (!$qrPayload || !str_starts_with($qrPayload, 'SIPAY:STORE:')) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'QR Code tidak valid atau bukan format SI Pay'
+            ], 400);
+        }
+
+        // 3. Pecah Payload (Parsing)
+        try {
+            $parts = explode(':', $qrPayload);
+            $storeId = $parts[2]; // Ambil ID (posisi index ke-2)
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Format data QR rusak'
+            ], 400);
+        }
+
+        // 4. Cari Toko di Database
+        // Kita pakai 'with' user untuk mengambil nama pemilik merchant
+        $store = Store::with('user')->find($storeId);
+
+        if (!$store) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Toko tidak ditemukan di sistem'
+            ], 404);
+        }
+
+        // 5. Return Data Detail Toko (Untuk ditampilkan di Popup Konfirmasi)
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Toko ditemukan',
+            'data' => [
+                'store_id' => $store->id,
+                'store_name' => $store->name,
+
+                // Asumsi kamu punya kolom 'category' di tabel stores.
+                // Kalau tidak ada, ganti string statis atau hapus.
+                'category' => $store->category ?? 'Umum',
+
+                // Mengambil nama pemilik dari relasi user
+                'merchant_name' => $store->user->nama_lengkap ?? 'Unknown',
+
+                // Foto Toko (Handle jika null)
+                'store_image' => $store->image
+                    ? asset('storage/' . $store->image)
+                    : 'https://ui-avatars.com/api/?name=' . urlencode($store->name) . '&background=random',
+            ]
+        ]);
     }
 }

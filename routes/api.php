@@ -102,6 +102,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/transactions/pay-kiosk-card', [TransactionController::class, 'payByCardOnKiosk']);
     Route::post('/transactions/pay-store', [TransactionController::class, 'payStoreQr']);
     Route::post('/kiosk/check-balance', [UserController::class, 'checkBalance']);
+    Route::post('/scan/check-store', [TransactionController::class, 'checkStoreQr']); // Cek QR
 
     // --- H. PRE-ORDER & FAVORITE ---
     Route::post('/po/checkout', [PreOrderController::class, 'store']);

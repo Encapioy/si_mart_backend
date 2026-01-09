@@ -13,17 +13,43 @@
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const onScanSuccess = (decodedText) => {
-                // Format: SIPAY:STORE:45:NamaToko
+        document.addEventListener('livewire:initialized', () => { // Ganti jadi livewire:initialized biar aman
+            const onScanSuccess = (decodedText, decodedResult) => {
+                // 1. DEBUGGING: Munculkan isi QR di layar biar ketahuan isinya apa
+                console.log("Hasil Scan:", decodedText);
+
+                // Cek apakah formatnya benar
                 if (decodedText.startsWith('SIPAY:STORE:')) {
+                    // Matikan kamera dulu biar gak berat
                     html5QrcodeScanner.clear();
-                    let storeId = decodedText.split(':')[2];
-                    window.location.href = "/pay/" + storeId; // Redirect ke halaman bayar
+
+                    // Ambil ID (Split tulisan berdasarkan titik dua)
+                    let parts = decodedText.split(':');
+                    let storeId = parts[2]; // Ambil angka ID-nya
+
+                    // Redirect
+                    window.location.href = "/pay/" + storeId;
+                }
+                // 2. JIKA FORMAT SALAH (Misal user scan QR GoPay atau QR link biasa)
+                else {
+                    alert("QR Code Terbaca: " + decodedText + "\n\nTapi format salah! Harus diawali SIPAY:STORE:");
                 }
             };
-            const html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 }, false);
-            html5QrcodeScanner.render(onScanSuccess);
+
+            const onScanFailure = (error) => {
+                // Biarkan kosong biar gak spam error di console saat kamera lagi nyari fokus
+                // console.warn(`Code scan error = ${error}`);
+            };
+
+            // Config kamera
+            let config = {
+                fps: 10,
+                qrbox: { width: 250, height: 250 },
+                aspectRatio: 1.0
+            };
+
+            const html5QrcodeScanner = new Html5QrcodeScanner("reader", config, /* verbose= */ false);
+            html5QrcodeScanner.render(onScanSuccess, onScanFailure);
         });
     </script>
     <style>

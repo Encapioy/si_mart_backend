@@ -60,7 +60,7 @@ class PaymentPage extends Component
                 'store_id' => $this->store->id,
                 'amount' => $this->amount,
                 'type' => 'payment',
-                'status' => 'success',
+                'status' => 'paid',
                 'description' => $this->note ?? 'Pembayaran Web',
                 'reference_code' => 'WEB-' . time(),
             ]);

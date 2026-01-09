@@ -772,7 +772,7 @@ class TransactionController extends Controller
                 'store_id' => $store->id, // Data masuk ke Toko
                 'amount' => $request->amount,
                 'type' => 'payment',
-                'status' => 'success',
+                'status' => 'paid',
                 'description' => 'Pembayaran ke ' . $store->name,
                 'reference_code' => 'TRX-' . time() . rand(100, 999)
             ]);
@@ -780,7 +780,7 @@ class TransactionController extends Controller
             DB::commit();
 
             return response()->json([
-                'status' => 'success',
+                'status' => 'paid',
                 'message' => 'Pembayaran berhasil ke ' . $store->name,
                 'data' => $trx,
                 'sisa_saldo' => $user->saldo // Return sisa saldo biar UI langsung update

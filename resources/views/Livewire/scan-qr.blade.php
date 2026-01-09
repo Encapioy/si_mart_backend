@@ -46,6 +46,10 @@
                 fps: 10,
                 qrbox: { width: 250, height: 250 },
                 aspectRatio: 1.0
+
+                videoConstraints: {
+                    facingMode: "environment"
+                }
             };
 
             const html5QrcodeScanner = new Html5QrcodeScanner("reader", config, /* verbose= */ false);

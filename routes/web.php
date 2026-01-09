@@ -2,39 +2,34 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\AdminController;
 
-/*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register web routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "web" middleware group. Make something great!
-|
-*/
+// Livewire Components
+use App\Livewire\Login;
+use App\Livewire\Dashboard;
+use App\Livewire\ScanQr;
+use App\Livewire\PaymentPage;
+use App\Livewire\Register;
 
-// Public
-Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
-Route::post('/login', [AuthController::class, 'loginWeb'])->name('login.submit'); // Pakai fungsi loginWeb
+// 1. Landing Page
+Route::get('/', function () {
+    return view('landing'); })->name('home');
+
+// 2. Login Page
+Route::get('/register', Register::class)->name('register');
+Route::get('/login', Login::class)->name('login');
 Route::get('/logout', [AuthController::class, 'logoutWeb'])->name('logout');
 
-// Proteksi Halaman Admin (Harus Login)
-// --- ROUTE KHUSUS ADMIN (Jaga dengan guard admin) ---
-Route::middleware(['auth:admin'])->group(function () {
-
-    Route::get('/admin-panel/topup', [\App\Http\Controllers\Api\AdminController::class, 'showTopUpPage'])->name('admin.topup');
-
-    Route::get('/admin/ajax/cashiers', [\App\Http\Controllers\Api\AdminController::class, 'getCashiers']);
-    Route::get('/admin/ajax/search-user', [\App\Http\Controllers\Api\AdminController::class, 'webSearchUser']);
+// 3. User Web Routes
+Route::middleware(['auth:web'])->group(function () {
+    Route::get('/dashboard', Dashboard::class)->name('dashboard');
+    Route::get('/scan', ScanQr::class)->name('scan');
+    Route::get('/pay/{storeId}', PaymentPage::class)->name('pay');
 });
 
-
-// --- ROUTE KHUSUS USER (Jaga dengan guard web biasa) ---
-Route::middleware(['auth:web'])->group(function () {
-
-    Route::get('/user/home', function () {
-        return "Halo User!";
-    })->name('user.home');
-
+// 4. Admin Routes (Jangan diganggu)
+Route::middleware(['auth:admin'])->group(function () {
+    Route::get('/admin-panel/topup', [AdminController::class, 'showTopUpPage'])->name('admin.topup');
+    Route::get('/admin/ajax/cashiers', [AdminController::class, 'getCashiers']);
+    Route::get('/admin/ajax/search-user', [AdminController::class, 'webSearchUser']);
 });

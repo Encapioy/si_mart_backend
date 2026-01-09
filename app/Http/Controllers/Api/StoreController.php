@@ -131,15 +131,22 @@ class StoreController extends Controller
     // 5. DETAIL SATU TOKO (Header Halaman Toko)
     public function show($id)
     {
-        $store = Merchant::where('status', 'approved')->findOrFail($id);
-
-        // Opsional: Hitung statistik simpel buat ditampilin
-        $productCount = $store->products()->count();
+        // PERBAIKAN 1: Tambahkan ->with('products')
+        // Ini artinya: "Cari Toko ID sekian, DAN tolong bawakan semua produk dia sekalian"
+        // Pastikan modelnya 'Store' ya, sesuai konsep "Banyak Cabang" tadi.
+        // Kalau kamu masih pakai 'Merchant' sebagai toko, sesuaikan saja namanya.
+        $store = Store::with('products')
+            ->where('is_open', true) // Opsional: Cuma tampilkan toko yang buka
+            ->findOrFail($id);
 
         return response()->json([
+            'message' => 'Detail toko berhasil diambil',
             'data' => $store,
+            // Di dalam object $store ini nanti otomatis ada field 'products': [...]
+
+            // Statistik tambahan (Opsional, tapi bagus buat UI)
             'stats' => [
-                'total_products' => $productCount
+                'total_products' => $store->products->count(), // Hitung dari data yg sudah diambil
             ]
         ]);
     }

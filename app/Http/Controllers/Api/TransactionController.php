@@ -727,37 +727,49 @@ class TransactionController extends Controller
     {
         // 1. Validasi Input
         $request->validate([
-            'store_id' => 'required|exists:stores,id', // ID Toko hasil scan
-            'amount' => 'required|numeric|min:500',   // Nominal bayar
-            'pin' => 'required|string',            // PIN User pembeli
+            'store_id' => 'required|exists:stores,id',
+            'amount' => 'required|numeric|min:500',
+            'pin' => 'required|string',
         ]);
 
-        $user = $request->user(); // Pembeli (Siswa)
+        $user = $request->user();
+
+        // 2. CEK PIN USER (WAJIB ADA)
+        // Asumsi PIN di database di-hash (bcrypt). Kalau plain text, pakai == biasa.
+        if (!Hash::check($request->pin, $user->pin)) {
+            return response()->json(['message' => 'PIN Salah!'], 401);
+        }
+
+        // 3. CEK SALDO CUKUP GAK? (WAJIB ADA)
+        // Pastikan nama kolom di DB kamu 'saldo' atau 'balance'. Sesuaikan ya.
+        if ($user->saldo < $request->amount) {
+            return response()->json(['message' => 'Saldo tidak mencukupi'], 400);
+        }
+
         $store = \App\Models\Store::find($request->store_id);
 
-        // 2. Cari Siapa Pemilik Toko Ini (Merchant)
+        // Cari Pemilik Toko
         $merchantUser = User::find($store->user_id);
+        if (!$merchantUser) {
+            return response()->json(['message' => 'Merchant toko ini tidak valid'], 404);
+        }
 
-        // --- (DISINI LOGIC CEK PIN & SALDO USER PEMBELI) ---
-        // (Anggap code validasi saldo & PIN sudah ada di sini ya)
-        // ...
-
-        // 3. Proses Pemindahan Saldo
+        // 4. Proses Transaksi
         DB::beginTransaction();
         try {
             // A. Kurangi Saldo Pembeli
-            $user->balance -= $request->amount;
+            $user->saldo -= $request->amount;
             $user->save();
 
-            // B. Tambah Saldo Merchant (Pemilik Toko) -> UANGNYA KESINI
-            $merchantUser->balance += $request->amount;
+            // B. Tambah Saldo Merchant
+            $merchantUser->saldo += $request->amount;
             $merchantUser->save();
 
-            // 4. Catat Riwayat Transaksi
+            // C. Catat Riwayat
             $trx = Transaction::create([
-                'user_id' => $user->id,          // Pembeli
-                'merchant_id' => $merchantUser->id, // Penerima Uang (Merchant)
-                'store_id' => $store->id,        // <--- PENTING: Sumber Pendapatan (Toko)
+                'user_id' => $user->id,
+                'merchant_id' => $merchantUser->id,
+                'store_id' => $store->id, // Data masuk ke Toko
                 'amount' => $request->amount,
                 'type' => 'payment',
                 'status' => 'success',
@@ -770,7 +782,8 @@ class TransactionController extends Controller
             return response()->json([
                 'status' => 'success',
                 'message' => 'Pembayaran berhasil ke ' . $store->name,
-                'data' => $trx
+                'data' => $trx,
+                'sisa_saldo' => $user->saldo // Return sisa saldo biar UI langsung update
             ]);
 
         } catch (\Exception $e) {

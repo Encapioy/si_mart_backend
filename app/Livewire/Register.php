@@ -36,7 +36,7 @@ class Register extends Component
             'username' => $this->username,
             'email' => $this->email,
             'no_hp' => $this->no_hp,
-            'pin' => Hash::make($this->pin), // PIN Transaksi (biasanya disimpan plain atau hash tergantung kebijakanmu, default hash is safer but request might differ. Asumsi: plain/string sesuai controller admin sebelumnya)
+            'pin' => $this->pin, // PIN Transaksi (biasanya disimpan plain atau hash tergantung kebijakanmu, default hash is safer but request might differ. Asumsi: plain/string sesuai controller admin sebelumnya)
             'password' => Hash::make($this->password),
             'role' => 'user',
             'saldo' => 0,

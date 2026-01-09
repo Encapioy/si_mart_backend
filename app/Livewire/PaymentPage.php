@@ -31,7 +31,7 @@ class PaymentPage extends Component
         $user = Auth::user();
 
         // 1. Cek PIN
-        if (!Hash::check($this->pin, $user->pin)) {
+        if ($this->pin != $user->pin) {
             $this->addError('pin', 'PIN Salah!');
             return;
         }

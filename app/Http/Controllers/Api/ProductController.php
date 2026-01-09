@@ -15,17 +15,32 @@ class ProductController extends Controller
     // 1. LIHAT SEMUA PRODUK (DENGAN FITUR PENCARIAN)
     public function index(Request $request)
     {
-        // Mulai membangun query (belum dieksekusi)
+        // Mulai membangun query
         $query = Product::query();
 
-        // --- LOGIKA PENCARIAN ---
+        // ==========================================
+        // 1. FILTER TOKO / MERCHANT
+        // ==========================================
 
-        // Jika frontend mengirim parameter ?toko=simart
+        // A. Filter Toko Utama (SI MART / Sekolah)
         if ($request->query('toko') == 'simart') {
+            // [UBAH DISINI] Pakai store_id
             $query->whereNull('store_id');
         }
 
-        // Cek apakah ada kiriman parameter 'search' dari Frontend/Postman?
+        // B. Filter Merchant Spesifik (Misal: User klik Toko Bu Siti)
+        // Frontend kirim: /api/products?store_id=5
+        // [UBAH DISINI] Cek parameter 'store_id'
+        if ($request->filled('store_id')) {
+            // [UBAH DISINI] Where ke kolom 'store_id'
+            $query->where('store_id', $request->store_id);
+        }
+
+        // ==========================================
+        // 2. FILTER PENCARIAN & KATEGORI
+        // ==========================================
+
+        // C. Search (Nama / Barcode)
         if ($request->filled('search')) {
             $keyword = $request->search;
             $query->where(function ($q) use ($keyword) {
@@ -34,8 +49,15 @@ class ProductController extends Controller
             });
         }
 
-        // Jika frontend minta ?status=habis -> Tampilkan yg stok 0
-        // Jika frontend minta ?status=tersedia -> Tampilkan yg stok > 0
+        // D. Filter Kategori
+        if ($request->filled('category')) {
+            $query->where('kategori', $request->category);
+        }
+
+        // ==========================================
+        // 3. FILTER STATUS STOK
+        // ==========================================
+
         if ($request->filled('status')) {
             if ($request->status == 'habis') {
                 $query->where('stok', '<=', 0);
@@ -44,17 +66,23 @@ class ProductController extends Controller
             }
         }
 
-        // Eksekusi & Pagination
-        // Ambil 10 data per halaman, urutkan dari yang terbaru
+        // ==========================================
+        // 4. EKSEKUSI & RESPONSE
+        // ==========================================
+
+        // [OPSIONAL] Cek nama fungsi relasi di Model Product kamu.
+        // Kalau di model Product kamu nama fungsinya public function merchant(), ini sudah benar.
+        // Tapi kalau nama fungsinya public function store(), ganti jadi 'store:id,shop_name'
+        $query->with('merchant:id,shop_name');
+
         $products = $query->latest()->paginate(10);
 
-        // Lampirkan status favorit ke setiap item di halaman ini
         foreach ($products as $product) {
             $product->append('is_favorited');
         }
 
         return response()->json([
-            'message' => 'List produk',
+            'message' => 'List produk berhasil diambil',
             'data' => $products
         ]);
     }
@@ -66,7 +94,8 @@ class ProductController extends Controller
 
         // 1. CEK USER VERIFIED
         if ($user instanceof \App\Models\User) {
-            if ($user->status_verifikasi != 'verified') return response()->json(['message' => 'Wajib verifikasi KTP!'], 403);
+            if ($user->status_verifikasi != 'verified')
+                return response()->json(['message' => 'Wajib verifikasi KTP!'], 403);
         }
 
         // 2. RULES VALIDASI
@@ -85,7 +114,8 @@ class ProductController extends Controller
         ];
 
         $validator = Validator::make($request->all(), $rules);
-        if ($validator->fails()) return response()->json($validator->errors(), 400);
+        if ($validator->fails())
+            return response()->json($validator->errors(), 400);
 
         // 3. LOGIKA TOKO & PRE-ORDER
         $targetStoreId = null;
@@ -95,7 +125,8 @@ class ProductController extends Controller
 
             // Cek Kepemilikan
             $cekToko = \App\Models\Store::where('id', $request->store_id)->where('user_id', $user->id)->first();
-            if (!$cekToko) return response()->json(['message' => 'Toko tidak valid'], 403);
+            if (!$cekToko)
+                return response()->json(['message' => 'Toko tidak valid'], 403);
 
             $targetStoreId = $request->store_id;
 
@@ -229,5 +260,50 @@ class ProductController extends Controller
 
         $product->delete();
         return response()->json(['message' => 'Produk berhasil dihapus']);
+    }
+
+    // 6. ALL PRODUCT
+    public function myGroupedProducts()
+    {
+        $user = auth()->user();
+
+        // 1. Ambil semua ID Toko milik user ini
+        // Hasil: [1, 5, 8] (ID dari Waroeng Snack, Warteg Kopag, dll)
+        $myStoreIds = \App\Models\Merchant::where('user_id', $user->id)->pluck('id');
+
+        // 2. Query Produk
+        $query = Product::query();
+
+        if ($user->role === 'admin') {
+            // Kalau Admin: Ambil produk di tokonya SENDIRI + Produk SIMART (store_id NULL)
+            $query->where(function ($q) use ($myStoreIds) {
+                $q->whereIn('store_id', $myStoreIds)
+                    ->orWhereNull('store_id');
+            });
+        } else {
+            // Kalau User Biasa: Ambil produk di toko-toko miliknya saja
+            $query->whereIn('store_id', $myStoreIds);
+        }
+
+        // Load data toko (merchant) biar kita tahu nama tokonya
+        $products = $query->with('merchant:id,shop_name')
+            ->latest()
+            ->get();
+
+        // 3. GROUPING (Pengelompokan)
+        // Kita kelompokkan berdasarkan Nama Toko
+        $grouped = $products->groupBy(function ($product) {
+            // Kalau store_id kosong, berarti punya SI MART
+            if (!$product->store_id) {
+                return 'SI MART (Pusat)';
+            }
+            // Kalau ada, ambil nama tokonya dari relasi
+            return $product->merchant->shop_name ?? 'Toko Tidak Dikenal';
+        });
+
+        return response()->json([
+            'message' => 'Data produk berhasil dikelompokkan',
+            'data' => $grouped
+        ]);
     }
 }

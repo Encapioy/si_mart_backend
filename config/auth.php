@@ -36,9 +36,23 @@ return [
     */
 
     'guards' => [
+        // 1. INI GUARD BAWAAN (JANGAN DIHAPUS, DIPAKAI SAMA USER BIASA)
         'web' => [
             'driver' => 'session',
             'provider' => 'users',
+        ],
+
+        // 2. INI GUARD API (BIASANYA DIPAKAI SANCTUM)
+        'api' => [
+            'driver' => 'token',
+            'provider' => 'users',
+            'hash' => false,
+        ],
+
+        // 3. INI GUARD BARU (TAMBAHAN KITA BUAT WEB ADMIN)
+        'admin' => [
+            'driver' => 'session',
+            'provider' => 'admins',
         ],
     ],
 
@@ -60,15 +74,17 @@ return [
     */
 
     'providers' => [
+        // 1. PROVIDER USER (JANGAN DIHAPUS)
         'users' => [
             'driver' => 'eloquent',
             'model' => App\Models\User::class,
         ],
 
-        // 'users' => [
-        //     'driver' => 'database',
-        //     'table' => 'users',
-        // ],
+        // 2. PROVIDER ADMIN (TAMBAHAN KITA)
+        'admins' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\Admin::class,
+        ],
     ],
 
     /*

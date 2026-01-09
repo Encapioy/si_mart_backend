@@ -8,8 +8,10 @@ use App\Models\Transaction;
 use App\Models\TransactionItem;
 use App\Models\Product;
 use App\Models\User;
+use App\Models\Merchant;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 class TransactionController extends Controller
@@ -657,5 +659,123 @@ class TransactionController extends Controller
             'message' => 'Detail Transaksi',
             'data' => $transaction
         ]);
+    }
+
+    // 5. BAYAR KE MERCHANT DENGAN QR
+    public function payMerchantQr(Request $request)
+    {
+        // 1. Validasi Input
+        $request->validate([
+            'merchant_id' => 'required|exists:merchants,id',
+            'amount' => 'required|numeric|min:500', // Minimal bayar 500 perak
+            'pin' => 'required|digits:6', // Wajib PIN biar aman
+        ]);
+
+        $user = auth()->user();
+        $amount = $request->amount;
+
+        // 2. Cek PIN User
+        // (Asumsi kamu pake hash buat pin, sesuaikan logic validasimu)
+        if (!Hash::check($request->pin, $user->pin)) {
+            return response()->json(['message' => 'PIN Salah!'], 401);
+        }
+
+        // 3. Cek Saldo User
+        if ($user->balance < $amount) {
+            return response()->json(['message' => 'Saldo tidak cukup.'], 400);
+        }
+
+        // 4. Mulai Transaksi Database (Atomic)
+        DB::beginTransaction();
+        try {
+            $merchant = Merchant::findOrFail($request->merchant_id);
+
+            // A. Potong Saldo User
+            $user->balance -= $amount;
+            $user->save();
+
+            // B. Tambah Saldo Merchant (Masuk ke Wallet Toko, bukan Wallet Pribadi User)
+            $merchant->balance += $amount;
+            $merchant->save();
+
+            // C. Catat Riwayat Transaksi
+            $transaction = Transaction::create([
+                'user_id' => $user->id,
+                'merchant_id' => $merchant->id,
+                'type' => 'PAYMENT', // Tipe transaksi
+                'amount' => $amount,
+                'status' => 'success',
+                'description' => 'Pembayaran ke ' . $merchant->shop_name,
+                'reference_id' => 'TRX-' . time() . rand(100, 999)
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Pembayaran Berhasil!',
+                'data' => $transaction
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'Transaksi Gagal: ' . $e->getMessage()], 500);
+        }
+    }
+
+    // 6. BAYAR KE TOKO MERCHANT DENGAN QR
+    public function payStoreQr(Request $request)
+    {
+        // 1. Validasi Input
+        $request->validate([
+            'store_id' => 'required|exists:stores,id', // ID Toko hasil scan
+            'amount' => 'required|numeric|min:500',   // Nominal bayar
+            'pin' => 'required|string',            // PIN User pembeli
+        ]);
+
+        $user = $request->user(); // Pembeli (Siswa)
+        $store = \App\Models\Store::find($request->store_id);
+
+        // 2. Cari Siapa Pemilik Toko Ini (Merchant)
+        $merchantUser = User::find($store->user_id);
+
+        // --- (DISINI LOGIC CEK PIN & SALDO USER PEMBELI) ---
+        // (Anggap code validasi saldo & PIN sudah ada di sini ya)
+        // ...
+
+        // 3. Proses Pemindahan Saldo
+        DB::beginTransaction();
+        try {
+            // A. Kurangi Saldo Pembeli
+            $user->balance -= $request->amount;
+            $user->save();
+
+            // B. Tambah Saldo Merchant (Pemilik Toko) -> UANGNYA KESINI
+            $merchantUser->balance += $request->amount;
+            $merchantUser->save();
+
+            // 4. Catat Riwayat Transaksi
+            $trx = Transaction::create([
+                'user_id' => $user->id,          // Pembeli
+                'merchant_id' => $merchantUser->id, // Penerima Uang (Merchant)
+                'store_id' => $store->id,        // <--- PENTING: Sumber Pendapatan (Toko)
+                'amount' => $request->amount,
+                'type' => 'payment',
+                'status' => 'success',
+                'description' => 'Pembayaran ke ' . $store->name,
+                'reference_code' => 'TRX-' . time() . rand(100, 999)
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Pembayaran berhasil ke ' . $store->name,
+                'data' => $trx
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'Transaksi gagal: ' . $e->getMessage()], 500);
+        }
     }
 }

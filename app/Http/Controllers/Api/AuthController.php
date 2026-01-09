@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\Admin;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use App\Models\UserDevice;
 
@@ -247,5 +248,83 @@ class AuthController extends Controller
     public function me(Request $request)
     {
         return response()->json($request->user());
+    }
+
+    // ==========================================================
+    // KHUSUS WEB ADMIN / DASHBOARD (JANGAN HAPUS YANG API)
+    // ==========================================================
+
+    // 1. Tampilkan Halaman Login HTML
+    public function showLoginForm()
+    {
+        // Jika sudah login, langsung lempar sesuai role
+        if (Auth::guard('web')->check()) {
+            return $this->redirectBasedOnRole(Auth::user());
+        }
+        return view('auth.login');
+    }
+
+    // 2. Proses Login Web (Satu Pintu)
+    public function loginWeb(Request $request)
+    {
+        $request->validate([
+            'username' => 'required',
+            'password' => 'required'
+        ]);
+
+        // A. CEK ADMIN (Pakai Guard 'admin')
+        $admin = Admin::where('username', $request->username)->first();
+        if ($admin && Hash::check($request->password, $admin->password)) {
+
+            // PENTING: Login pakai guard 'admin'
+            Auth::guard('admin')->login($admin);
+            $request->session()->regenerate();
+
+            // Redirect
+            if ($admin->role === 'keuangan') {
+                return redirect()->route('admin.topup');
+            }
+            return redirect()->route('admin.dashboard');
+        }
+
+        // B. CEK USER (Pakai Guard default 'web')
+        $user = User::where('username', $request->username)
+            ->orWhere('no_hp', $request->username)
+            ->first();
+        if ($user && Hash::check($request->password, $user->password)) {
+
+            // Login pakai guard default
+            Auth::login($user);
+            $request->session()->regenerate();
+            return redirect()->route('user.home');
+        }
+
+        return back()->with('error', 'Username atau Password salah!');
+    }
+
+    // 3. Helper Redirect (Biar rapi)
+    private function redirectBasedOnRole($user)
+    {
+        // Pastikan cek role hanya jika user itu Admin
+        // Kalau model User biasa gak punya role, langsung skip
+        if ($user instanceof Admin) {
+            if ($user->role === 'keuangan') {
+                return redirect()->route('admin.topup');
+            } elseif ($user->role === 'pusat' || $user->role === 'developer') {
+                return redirect()->route('admin.dashboard');
+            }
+        }
+
+        // Default User Biasa
+        return redirect()->route('user.home');
+    }
+
+    // 4. Logout Web
+    public function logoutWeb(Request $request)
+    {
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+        return redirect('/login');
     }
 }

@@ -1,287 +1,293 @@
 <!DOCTYPE html>
 <html lang="id">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Finance | SI PAY</title>
+    <title>Kasir Top Up | SI PAY</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
+        body { font-family: 'Inter', sans-serif; }
+        /* Style untuk list autocomplete */
+        .autocomplete-items {
+            position: absolute;
+            border: 1px solid #e2e8f0;
+            border-bottom: none;
+            border-top: none;
+            z-index: 99;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background-color: white;
+            border-radius: 0 0 0.5rem 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
-
-        /* Hilangkan scrollbar default */
-        ::-webkit-scrollbar {
-            width: 6px;
+        .autocomplete-items div {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #e2e8f0;
         }
-
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 3px;
+        .autocomplete-items div:hover {
+            background-color: #f1f5f9;
         }
     </style>
 </head>
-
 <body class="h-screen w-screen overflow-hidden flex bg-white text-slate-800">
 
-    <div class="w-1/2 h-full flex flex-col justify-center items-center relative p-12">
-
-        <div class="absolute top-8 left-10 flex items-center gap-2">
-            <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">S</div>
-            <span class="font-semibold tracking-tight text-slate-900">SI PAY <span
-                    class="text-slate-400 font-normal">Finance</span></span>
-        </div>
+    <div class="w-1/2 h-full flex flex-col justify-center items-center relative p-12 bg-white z-10">
 
         <div class="w-full max-w-md">
-            <div class="mb-8">
-                <h1 class="text-3xl font-bold text-slate-900 tracking-tight">Top Up Saldo</h1>
-                <p class="text-slate-500 text-sm mt-1">Isi saldo siswa/user dengan cepat dan aman.</p>
+            <div class="mb-6">
+                <h1 class="text-2xl font-bold text-slate-900">Top Up Saldo</h1>
+                <p class="text-slate-500 text-sm">Minimal transaksi Rp 100.000</p>
             </div>
 
-            <form id="topupForm" onsubmit="handleTopUp(event)" autocomplete="off">
+            <form id="topupForm" onsubmit="confirmTransaction(event)" autocomplete="off">
 
-                <div class="mb-5 group">
-                    <label class="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">Target User</label>
-                    <div
-                        class="flex items-center bg-slate-50 rounded-xl px-4 py-3 transition-all group-focus-within:ring-2 group-focus-within:ring-blue-500/20 group-focus-within:bg-white border border-transparent group-focus-within:border-blue-500">
-                        <i class="fa-solid fa-address-book text-slate-400 mr-3"></i>
-
-                        <input type="text" id="target_user"
-                            class="bg-transparent border-none w-full text-sm font-medium focus:outline-none text-slate-700 placeholder-slate-400"
-                            placeholder="Ketik No HP / Email / Scan Kartu" required>
+                <div class="mb-5 relative group">
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Cari Username Siswa</label>
+                    <div class="flex items-center bg-slate-50 rounded-xl px-4 py-3 border border-transparent focus-within:border-blue-500 focus-within:bg-white transition">
+                        <i class="fa-solid fa-user-graduate text-slate-400 mr-3"></i>
+                        <input type="text" id="target_username" class="bg-transparent w-full text-sm font-bold focus:outline-none text-slate-800"
+                        placeholder="Ketik nama atau username..." oninput="searchUserAPI(this.value)">
                     </div>
+                    <div id="userList" class="autocomplete-items hidden"></div>
                 </div>
 
-                <div class="mb-6 group">
-                    <label class="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">Nominal Top
-                        Up</label>
-                    <div
-                        class="flex items-center bg-slate-50 rounded-xl px-4 py-3 transition-all group-focus-within:ring-2 group-focus-within:ring-emerald-500/20 group-focus-within:bg-white border border-transparent group-focus-within:border-emerald-500">
-                        <span class="text-slate-400 font-semibold mr-3 text-sm">Rp</span>
-                        <input type="number" id="amount"
-                            class="bg-transparent border-none w-full text-lg font-bold tracking-wide focus:outline-none text-slate-800 placeholder-slate-300"
-                            placeholder="0" min="1000" oninput="calculateTotal()" required>
+                <div class="mb-5">
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nominal (Min 100k)</label>
+                    <div class="flex items-center bg-slate-50 rounded-xl px-4 py-3 border border-transparent focus-within:border-emerald-500 focus-within:bg-white transition mb-2">
+                        <span class="text-slate-400 font-bold mr-3 text-sm">Rp</span>
+                        <input type="number" id="amount" class="bg-transparent w-full text-lg font-bold focus:outline-none text-emerald-700 placeholder-slate-300"
+                        placeholder="0" min="100000">
                     </div>
-
-                    <div
-                        class="mt-3 bg-white border border-slate-100 rounded-lg p-3 flex justify-between items-center shadow-sm">
-                        <div class="flex flex-col">
-                            <span class="text-[10px] text-slate-400 uppercase">Biaya Admin</span>
-                            <span class="text-xs font-semibold text-slate-600">Rp 100</span>
-                        </div>
-                        <div class="h-6 w-px bg-slate-100 mx-2"></div>
-                        <div class="flex flex-col text-right">
-                            <span class="text-[10px] text-slate-400 uppercase">Diterima User</span>
-                            <span id="preview_receive" class="text-sm font-bold text-emerald-600">Rp 0</span>
-                        </div>
+                    <div class="flex gap-2">
+                        <button type="button" onclick="setAmount(100000)" class="flex-1 py-2 text-xs font-bold bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition">100k</button>
+                        <button type="button" onclick="setAmount(150000)" class="flex-1 py-2 text-xs font-bold bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition">150k</button>
+                        <button type="button" onclick="setAmount(200000)" class="flex-1 py-2 text-xs font-bold bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition">200k</button>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-3 gap-4 mb-8">
-                    <div class="col-span-2 group">
-                        <label class="block text-[10px] font-bold text-slate-400 mb-1">ADMIN USERNAME</label>
-                        <input type="text" id="admin_username"
-                            class="w-full bg-slate-50 rounded-lg px-3 py-2 text-sm border border-transparent focus:bg-white focus:border-slate-300 focus:outline-none transition"
-                            placeholder="Username" required>
+                    <div class="col-span-2">
+                        <label class="block text-[10px] font-bold text-slate-400 mb-1">NAMA KASIR</label>
+                        <div class="relative">
+                            <select id="cashier_id" class="w-full bg-slate-50 rounded-lg px-3 py-2 text-sm border border-transparent focus:bg-white focus:border-slate-300 focus:outline-none appearance-none cursor-pointer font-medium">
+                                <option value="" disabled selected>Pilih Nama...</option>
+                                </select>
+                            <i class="fa-solid fa-chevron-down absolute right-3 top-3 text-xs text-slate-400 pointer-events-none"></i>
+                        </div>
                     </div>
-                    <div class="col-span-1 group">
-                        <label class="block text-[10px] font-bold text-slate-400 mb-1">PIN</label>
-                        <input type="password" id="admin_pin" maxlength="6"
-                            class="w-full bg-slate-50 rounded-lg px-3 py-2 text-sm border border-transparent focus:bg-white focus:border-slate-300 focus:outline-none transition text-center tracking-widest"
-                            placeholder="•••" required>
+                    <div class="col-span-1">
+                        <label class="block text-[10px] font-bold text-slate-400 mb-1">PIN KASIR</label>
+                        <input type="password" id="cashier_pin" maxlength="6" class="w-full bg-slate-50 rounded-lg px-3 py-2 text-sm border border-transparent focus:bg-white focus:border-slate-300 focus:outline-none text-center tracking-widest font-bold" placeholder="******">
                     </div>
                 </div>
 
-                <button type="submit"
-                    class="w-full bg-slate-900 hover:bg-black text-white font-medium py-3.5 rounded-xl shadow-lg shadow-slate-200 transition-all active:scale-[0.98] flex justify-center items-center gap-2 text-sm">
-                    <span>Konfirmasi Transaksi</span>
-                    <i class="fa-solid fa-arrow-right text-xs"></i>
+                <button type="submit" class="w-full bg-slate-900 hover:bg-black text-white font-bold py-3.5 rounded-xl shadow-lg transition transform active:scale-[0.98]">
+                    PROSES TOP UP
                 </button>
             </form>
-
-            <div id="alertBox" class="hidden mt-4 p-3 rounded-lg text-xs font-medium text-center animate-pulse"></div>
         </div>
 
-        <p class="absolute bottom-6 text-[10px] text-slate-300">Protected by 256-bit Encryption</p>
+        <p class="absolute bottom-6 text-[10px] text-slate-300">Protected System | v2.0</p>
     </div>
 
-    <div class="w-1/2 h-full flex flex-col border-l border-slate-100">
+    <div class="w-1/2 h-full flex flex-col border-l border-slate-100 bg-slate-50">
+        <div class="h-2/5 bg-slate-900 p-10 text-white flex flex-col justify-center relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-40 h-40 bg-blue-500 rounded-full blur-3xl opacity-20 -mr-10 -mt-10"></div>
 
-        <div class="h-[40%] bg-slate-900 p-10 flex flex-col justify-center relative">
-            <h3 class="text-slate-400 text-xs font-semibold uppercase tracking-widest mb-8">Overview Hari Ini</h3>
-
-            <div class="grid grid-cols-2 gap-x-12 gap-y-8">
+            <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6">Status Keuangan</h2>
+            <div class="grid grid-cols-2 gap-8">
                 <div>
-                    <h2 class="text-3xl font-bold text-white tracking-tight">Rp 145.2jt</h2>
-                    <p class="text-slate-500 text-xs mt-1">Total Perputaran Uang</p>
+                    <h1 class="text-3xl font-bold">Rp 145.2jt</h1>
+                    <p class="text-slate-500 text-xs mt-1">Uang Beredar</p>
                 </div>
                 <div>
-                    <h2 class="text-3xl font-bold text-emerald-400 tracking-tight">Rp 52.3rb</h2>
-                    <p class="text-slate-500 text-xs mt-1">Accumulated Fee (Admin)</p>
-                </div>
-                <div class="flex items-center gap-3">
-                    <div class="p-2 bg-slate-800 rounded-md text-white"><i class="fa-solid fa-receipt"></i></div>
-                    <div>
-                        <p class="text-white font-semibold text-lg">1,204</p>
-                        <p class="text-slate-500 text-[10px]">Transaksi Sukses</p>
-                    </div>
-                </div>
-                <div class="flex items-center gap-3">
-                    <div class="p-2 bg-slate-800 rounded-md text-blue-400"><i class="fa-solid fa-server"></i></div>
-                    <div>
-                        <p class="text-blue-400 font-semibold text-lg">Online</p>
-                        <p class="text-slate-500 text-[10px]">VPS Connection</p>
-                    </div>
+                    <h1 class="text-3xl font-bold text-emerald-400">Online</h1>
+                    <p class="text-slate-500 text-xs mt-1">Database Status</p>
                 </div>
             </div>
         </div>
-
-        <div class="h-[60%] bg-slate-50 p-8 overflow-hidden flex flex-col">
-            <div class="flex justify-between items-end mb-6">
-                <div>
-                    <h3 class="text-slate-800 font-bold text-lg">Live Reports</h3>
-                    <p class="text-slate-400 text-xs">Laporan kendala user secara realtime.</p>
-                </div>
-                <div class="flex items-center gap-1">
-                    <span class="relative flex h-2 w-2">
-                        <span
-                            class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                        <span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-                    </span>
-                    <span class="text-[10px] font-bold text-red-500 ml-1">LIVE</span>
-                </div>
-            </div>
-
-            <div class="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
-
-                <div
-                    class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex items-start gap-3 hover:shadow-md transition cursor-pointer">
-                    <div class="mt-1 min-w-[8px] h-2 rounded-full bg-orange-400"></div>
-                    <div class="flex-1">
-                        <div class="flex justify-between items-start">
-                            <h4 class="text-sm font-semibold text-slate-800">Transaksi Pending (Kantin)</h4>
-                            <span class="text-[10px] text-slate-400">2m</span>
-                        </div>
-                        <p class="text-xs text-slate-500 mt-1">User <span class="text-slate-700 font-medium">Ahmad (XII
-                                RPL)</span> melaporkan saldo terpotong tapi struk tidak keluar.</p>
-                    </div>
-                </div>
-
-                <div
-                    class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex items-start gap-3 hover:shadow-md transition cursor-pointer">
-                    <div class="mt-1 min-w-[8px] h-2 rounded-full bg-blue-400"></div>
-                    <div class="flex-1">
-                        <div class="flex justify-between items-start">
-                            <h4 class="text-sm font-semibold text-slate-800">Lupa PIN</h4>
-                            <span class="text-[10px] text-slate-400">15m</span>
-                        </div>
-                        <p class="text-xs text-slate-500 mt-1">User <span class="text-slate-700 font-medium">Siti (XI
-                                TKJ)</span> meminta reset PIN.</p>
-                    </div>
-                </div>
-
-                <div
-                    class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex items-start gap-3 hover:shadow-md transition cursor-pointer opacity-70">
-                    <div class="mt-1 min-w-[8px] h-2 rounded-full bg-slate-300"></div>
-                    <div class="flex-1">
-                        <div class="flex justify-between items-start">
-                            <h4 class="text-sm font-semibold text-slate-600">NFC Tidak Terbaca</h4>
-                            <span class="text-[10px] text-slate-400">1h</span>
-                        </div>
-                        <p class="text-xs text-slate-400 mt-1">Masalah pada alat reader Pos 2.</p>
-                    </div>
-                </div>
-
+        <div class="h-3/5 p-8 flex items-center justify-center text-slate-300">
+            <div class="text-center">
+                <i class="fa-solid fa-chart-pie text-4xl mb-2"></i>
+                <p class="text-sm">Menunggu Transaksi Baru...</p>
             </div>
         </div>
     </div>
 
     <script>
-        // 1. Hitung Preview Nominal
-        function calculateTotal() {
-            const amount = document.getElementById('amount').value;
-            const preview = document.getElementById('preview_receive');
+        // 1. SAAT HALAMAN DIMUAT: AMBIL DAFTAR KASIR
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const res = await fetch('/admin/ajax/cashiers', {
+                    headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
+                });
+                const cashiers = await res.json();
 
-            if (amount >= 100) {
-                const received = amount - 100;
-                preview.innerText = "Rp " + parseInt(received).toLocaleString('id-ID');
-            } else {
-                preview.innerText = "Rp 0";
+                const select = document.getElementById('cashier_id');
+                cashiers.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c.id;
+                    opt.innerText = c.nama_admin;
+                    select.appendChild(opt);
+                });
+            } catch (err) {
+                console.error("Gagal ambil data kasir", err);
+            }
+        });
+
+        // 2. FITUR AUTOCOMPLETE USERNAME
+            let timeout = null;
+
+            async function searchUserAPI(query) {
+                const list = document.getElementById('userList');
+
+                // UBAH 1: Izinkan pencarian mulai dari 1 huruf biar lebih responsif
+                if (query.length < 1) {
+                    list.classList.add('hidden');
+                    list.innerHTML = '';
+                    return;
+                }
+
+                // UBAH 2: Tampilkan status "Sedang mencari..." sebelum request jalan
+                list.classList.remove('hidden');
+                list.innerHTML = '<div class="text-xs text-slate-400 p-3 italic">Mencari...</div>';
+
+                clearTimeout(timeout);
+                timeout = setTimeout(async () => {
+                    try {
+                        // Pastikan URL ini sesuai dengan route di web.php
+                        const res = await fetch(`/admin/ajax/search-user?q=${query}`, {
+                            headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
+                        });
+
+                        // Cek jika error dari server (Misal 404 atau 500)
+                        if (!res.ok) {
+                            console.error("Server Error:", res.status);
+                            list.innerHTML = '<div class="text-xs text-red-500 p-3">Terjadi kesalahan server.</div>';
+                            return;
+                        }
+
+                        const users = await res.json();
+                        list.innerHTML = ''; // Hapus tulisan "Mencari..."
+
+                        if (users.length > 0) {
+                            users.forEach(u => {
+                                const item = document.createElement('div');
+                                // Pastikan key JSON sesuai controller ('username' & 'nama_lengkap')
+                                item.innerHTML = `
+                        <div class="flex flex-col">
+                            <span class="font-bold text-slate-700 text-sm">${u.username}</span>
+                            <span class="text-[10px] text-slate-400 uppercase">${u.nama_lengkap}</span>
+                        </div>
+                    `;
+                                // Saat diklik
+                                item.onclick = () => {
+                                    document.getElementById('target_username').value = u.username;
+                                    list.classList.add('hidden'); // Sembunyikan list
+                                };
+                                list.appendChild(item);
+                            });
+                        } else {
+                            // UBAH 3: Tampilkan pesan jika user tidak ditemukan (Jangan di-hidden)
+                            list.innerHTML = '<div class="text-xs text-slate-400 p-3">User tidak ditemukan.</div>';
+                        }
+                    } catch (e) {
+                        console.error(e);
+                        list.innerHTML = '<div class="text-xs text-red-500 p-3">Gagal memuat data.</div>';
+                    }
+                }, 300);
+            }
+
+        // 3. FITUR QUICK AMOUNT
+        function setAmount(val) {
+            document.getElementById('amount').value = val;
+        }
+
+        // 4. KONFIRMASI & SUBMIT
+        async function confirmTransaction(e) {
+            e.preventDefault();
+
+            // Ambil Data
+            const username = document.getElementById('target_username').value;
+            const amount = document.getElementById('amount').value;
+            const cashierId = document.getElementById('cashier_id').value;
+            const cashierName = document.getElementById('cashier_id').options[document.getElementById('cashier_id').selectedIndex]?.text;
+            const pin = document.getElementById('cashier_pin').value;
+
+            // Validasi Sederhana
+            if(!username || !amount || !cashierId || !pin) {
+                Swal.fire('Error', 'Mohon lengkapi semua form!', 'error');
+                return;
+            }
+            if(amount < 100000) {
+                Swal.fire('Error', 'Minimal Top Up Rp 100.000!', 'warning');
+                return;
+            }
+
+            // TAMPILKAN POPUP KONFIRMASI
+            const result = await Swal.fire({
+                title: 'Konfirmasi Top Up',
+                html: `
+                    <div class="text-left text-sm">
+                        <p class="mb-1">Tujuan: <b>${username}</b></p>
+                        <p class="mb-1">Nominal: <b class="text-emerald-600">Rp ${parseInt(amount).toLocaleString('id-ID')}</b></p>
+                        <p>Kasir: <b>${cashierName}</b></p>
+                    </div>
+                `,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#0f172a',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'YA, KIRIM SEKARANG',
+                cancelButtonText: 'Batal'
+            });
+
+            if (result.isConfirmed) {
+                processTopUp(username, amount, cashierId, pin);
             }
         }
 
-        // 2. Handle Submit (REAL REQUEST)
-        async function handleTopUp(e) {
-            e.preventDefault();
-
-            const btn = e.target.querySelector('button');
-            const originalText = btn.innerHTML;
-            const alertBox = document.getElementById('alertBox');
-
-            // Loading State
-            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> MEMPROSES...';
-            btn.classList.add('opacity-75', 'cursor-not-allowed');
-            btn.disabled = true;
-
-            // Ambil Data Form
-            const inputData = {
-                target_user: document.getElementById('target_user').value,
-                amount: document.getElementById('amount').value,
-                admin_username: document.getElementById('admin_username').value,
-                admin_pin: document.getElementById('admin_pin').value,
-            };
+        // 5. PROSES KE SERVER
+        async function processTopUp(username, amount, cashierId, pin) {
+            // Show Loading
+            Swal.fire({ title: 'Memproses...', didOpen: () => Swal.showLoading() });
 
             try {
-                // TEMBAK KE API VPS (Pastikan URL-nya benar)
-                // Karena kita di server yang sama, pakai relative path '/api/admin/topup' aman.
                 const response = await fetch('/api/admin/topup', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                        // KITA HAPUS HEADER 'Authorization' KARENA SEDANG DIMATIKAN
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}' // Pakai Token Auth Laravel
                     },
-                    body: JSON.stringify(inputData)
+                    body: JSON.stringify({
+                        target_username: username,
+                        amount: amount,
+                        cashier_id: cashierId,
+                        cashier_pin: pin
+                    })
                 });
 
-                const result = await response.json();
+                const res = await response.json();
 
-                if (!response.ok) {
-                    throw new Error(result.message || 'Terjadi kesalahan server');
-                }
+                if (!response.ok) throw new Error(res.message || 'Gagal');
 
-                // SUKSES
-                alertBox.className = "mt-4 p-3 rounded-lg text-xs font-medium text-center bg-emerald-50 text-emerald-600 border border-emerald-100";
-                alertBox.innerHTML = `<strong><i class="fa-solid fa-check-circle"></i> Berhasil!</strong> ${result.message}`;
-                alertBox.classList.remove('hidden');
+                // Sukses
+                Swal.fire('Berhasil!', `Saldo berhasil dikirim ke ${res.data.penerima}`, 'success');
 
                 // Reset Form
                 document.getElementById('topupForm').reset();
-                document.getElementById('preview_receive').innerText = "Rp 0";
 
             } catch (error) {
-                // GAGAL
-                console.error(error);
-                alertBox.className = "mt-4 p-3 rounded-lg text-xs font-medium text-center bg-red-50 text-red-600 border border-red-100";
-                alertBox.innerHTML = `<strong><i class="fa-solid fa-triangle-exclamation"></i> Gagal:</strong> ${error.message}`;
-                alertBox.classList.remove('hidden');
-            } finally {
-                // Reset Tombol
-                btn.innerHTML = originalText;
-                btn.classList.remove('opacity-75', 'cursor-not-allowed');
-                btn.disabled = false;
-                setTimeout(() => { alertBox.classList.add('hidden'); }, 5000);
+                Swal.fire('Gagal!', error.message, 'error');
             }
         }
     </script>
 </body>
-
 </html>

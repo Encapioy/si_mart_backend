@@ -113,84 +113,53 @@ class AdminController extends Controller
         ]);
     }
 
-    // 5. TOP UP SALDO USER (Admin Keuangan)
-    public function webTopUp(Request $request)
+    // 5. TOP UP SALDO USER (Web Version)
+    // FUNGSI 1: KHUSUS MENAMPILKAN HALAMAN (GET)
+    // Ini yang dipanggil saat redirect login berhasil
+    public function showTopUpPage()
     {
-        // Validasi Input
+        return view('admin.topup');
+    }
+    public function webTopUp(Request $request) // Gunakan nama topUp agar sesuai dengan logic sebelumnya
+    {
+        // ... (Paste kodingan validasi & transaksi kamu yang panjang tadi di sini) ...
+
+        // 1. Validasi Input
         $validator = Validator::make($request->all(), [
-            'target_user' => 'required|string', // Bisa Email, HP, atau Member ID
-            'amount' => 'required|integer|min:1000', // Minimal topup 1000
-            'admin_username' => 'required|string', // Verifikasi Admin
-            'admin_pin' => 'required|string|size:6', // PIN Admin
+            'target_username' => 'required|string',
+            'amount' => 'required|integer|min:100000',
+            'cashier_id' => 'required|exists:admins,id',
+            'cashier_pin' => 'required|string',
         ]);
 
         if ($validator->fails())
             return response()->json($validator->errors(), 400);
 
-        // 1. Cek User Tujuan
-        $target = $request->target_user;
-        $user = User::where('email', $target)
-            ->orWhere('no_hp', $target)
-            ->orWhere('member_id', $target)
-            ->orWhere('nfc_id', $target)
-            ->first();
-
+        // 2. Cari User
+        $user = User::where('username', $request->target_username)->first();
         if (!$user)
-            return response()->json(['message' => 'User tujuan tidak ditemukan!'], 404);
+            return response()->json(['message' => 'User tidak ditemukan!'], 404);
 
-        // 2. Cek Admin & Verifikasi PIN
-        // Kita cari admin berdasarkan username yang diinput
-        $admin = Admin::where('username', $request->admin_username)->first();
-
-        if (!$admin)
-            return response()->json(['message' => 'Username Admin salah!'], 401);
-
-        // Pastikan role-nya 'keuangan' atau 'pusat'
-        if (!in_array($admin->role, ['keuangan', 'pusat', 'developer'])) {
-            return response()->json(['message' => 'Anda tidak memiliki akses keuangan!'], 403);
+        // 3. Cek Kasir
+        $cashier = Admin::find($request->cashier_id);
+        if ($cashier->pin !== $request->cashier_pin) {
+            return response()->json(['message' => 'PIN Kasir Salah!'], 401);
         }
 
-        // Cek PIN Admin (Manual Check karena ini aksi sensitif)
-        // Asumsi di database admin ada kolom 'pin'. Jika belum, tambahkan manual atau pakai password.
-        // Di sini saya asumsikan admin punya kolom 'pin' juga seperti user.
-        if ($admin->pin !== $request->admin_pin) {
-            return response()->json(['message' => 'PIN Admin Salah!'], 401);
-        }
-
-        // 3. Logika Transaksi
-        return \Illuminate\Support\Facades\DB::transaction(function () use ($user, $admin, $request) {
-
-            $biayaAdmin = 100;
-            $nominalDiterimaUser = $request->amount - $biayaAdmin;
-
-            // A. Tambah Saldo User
-            $user->saldo += $nominalDiterimaUser;
+        // 4. Eksekusi
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($user, $cashier, $request) {
+            $user->saldo += $request->amount;
             $user->save();
 
-            // Mutasi User
-            $this->recordMutation(
-                $user,
-                $nominalDiterimaUser,
-                'credit',
-                'topup',
-                'Top Up via Admin Keuangan',
-                $admin->id // Related User = Admin
-            );
-
-            // B. Tambah Saldo Admin (Fee 100 Perak)
-            // Asumsi tabel admins punya kolom 'saldo'. Jika belum, buat migrasi:
-            // `php artisan make:migration add_saldo_to_admins_table`
-            $admin->saldo += $biayaAdmin;
-            $admin->save();
+            // Record Mutation (Pastikan fungsi ini ada)
+            $this->recordMutation($user, $request->amount, 'credit', 'topup', 'Top Up via Kasir: ' . $cashier->nama_admin); // Cek apakah nama_admin atau nama_lengkap
 
             return response()->json([
                 'message' => 'Top Up Berhasil!',
                 'data' => [
                     'penerima' => $user->nama_lengkap,
-                    'nominal_awal' => $request->amount,
-                    'biaya_admin' => $biayaAdmin,
-                    'masuk_saldo_user' => $nominalDiterimaUser,
-                    'admin_petugas' => $admin->nama_lengkap
+                    'nominal' => $request->amount,
+                    'kasir_bertugas' => $cashier->nama_admin // Cek nama kolom ini di model Admin
                 ]
             ]);
         });
@@ -600,5 +569,38 @@ class AdminController extends Controller
             ->get();
 
         return response()->json(['data' => $users]);
+    }
+
+    // 14. API UNTUK MENGAMBIL DAFTAR KASIR (Buat Dropdown)
+    public function getCashiers()
+    {
+        $cashiers = Admin::where('role', 'kasir') // Pakai 'where' untuk satu nilai spesifik
+            ->select('id', 'username as nama_admin') // Alias sudah benar
+            ->get();
+
+        return response()->json($cashiers);
+    }
+
+    // 15. AUTOCOMPLETE USERNAME
+    public function webSearchUser(Request $request)
+    {
+        $query = $request->get('q'); // Sesuaikan dengan JS kamu (?q=...)
+
+        // Cek biar gak error kalau kosong
+        if (!$query) {
+            return response()->json([]);
+        }
+
+        $users = User::query()
+            ->where(function ($q) use ($query) {
+                $q->where('username', 'LIKE', "%{$query}%")
+                    // Pastikan nama kolom di database kamu benar 'nama_lengkap' ya
+                    ->orWhere('nama_lengkap', 'LIKE', "%{$query}%");
+            })
+            ->select('id', 'username', 'nama_lengkap')
+            ->limit(10)
+            ->get();
+
+        return response()->json($users);
     }
 }

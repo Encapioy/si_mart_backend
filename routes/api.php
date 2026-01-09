@@ -12,128 +12,145 @@ use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\InformationController;
 use App\Http\Controllers\Api\FavoriteController;
 use App\Http\Controllers\Api\PreOrderController;
+use App\Http\Controllers\Api\MerchantController;
+use App\Http\Controllers\Api\MerchantDashboardController;
+use App\Http\Controllers\Api\Admin\MerchantVerificationController;
 
 /*
 |--------------------------------------------------------------------------
-| API Routes - SI MART ERP SYSTEM
+| API Routes - SI MART ERP SYSTEM (CLEANED)
 |--------------------------------------------------------------------------
 */
 
 // =================================================================
-// 1. PUBLIC ROUTES (Tanpa Token)
+// GROUP 1: PUBLIC / AUTHENTICATION
 // =================================================================
-
 Route::post('/register', [AuthController::class, 'register']);
-Route::post('/check-availability', [AuthController::class, 'checkAvailability']); // email/username udah di gunakan?
 Route::post('/login', [AuthController::class, 'login'])->name('login');
-Route::post('/login/verify-device', [AuthController::class, 'verifyNewDevice']); // Tahap 2 Login
-Route::get('/informations', [InformationController::class, 'index']); // List Info/Promo
+Route::post('/login/verify-device', [AuthController::class, 'verifyNewDevice']);
+Route::post('/check-availability', [AuthController::class, 'checkAvailability']); // Cek email/username
+Route::get('/informations', [InformationController::class, 'index']); // Berita/Info Publik
 
-// BAKAL TESTING DOANG
+// [DEV ONLY] Route Testing
 Route::post('/admin/topup', [AdminController::class, 'webTopUp']);
 
 // =================================================================
-// 2. PROTECTED ROUTES (Butuh Token: User / Merchant / Admin)
+// GROUP 2: PROTECTED ROUTES (Butuh Token)
 // =================================================================
-
 Route::middleware('auth:sanctum')->group(function () {
 
-    // --- AUTH & PROFILE ---
+    // --- A. USER PROFILE & SECURITY ---
     Route::post('/logout', [AuthController::class, 'logout']);
-    Route::get('/me', [AuthController::class, 'me']); // isi profile
-    Route::post('/users/change-password', [UserController::class, 'changePassword']); // ganti password
-    Route::post('/users/change-pin', [UserController::class, 'changePin']); // ganti pin
-    Route::post('/users/validate-pin', [UserController::class, 'validatePin']); // validasi pin
-    Route::post('/users/profile', [UserController::class, 'updateProfile']); // update profile
-    Route::post('/users/lookup', [UserController::class, 'getUserPublicInfo']); // tujuan transfer
-    Route::get('/history', [App\Http\Controllers\Api\HistoryController::class, 'index']); // riwayat semua transaksi
-    Route::get('/home', [App\Http\Controllers\Api\UserDashboardController::class, 'home']); // Tab Home
-    Route::get('/infos', [App\Http\Controllers\Api\UserDashboardController::class, 'infos']); // Tab Info
-    Route::post('/users/sync-contacts', [UserController::class, 'syncContacts']); // sync contact
+    Route::get('/me', [AuthController::class, 'me']);
+    Route::post('/users/profile', [UserController::class, 'updateProfile']);
+    Route::post('/users/change-password', [UserController::class, 'changePassword']);
+    Route::post('/users/change-pin', [UserController::class, 'changePin']);
+    Route::post('/users/validate-pin', [UserController::class, 'validatePin']);
+    Route::post('/users/lookup', [UserController::class, 'getUserPublicInfo']); // Cari user lain
+    Route::get('/history', [App\Http\Controllers\Api\HistoryController::class, 'index']); // History umum
 
-    // --- FITUR KELUARGA ---
+    // --- B. DASHBOARD & FAMILY ---
+    Route::get('/home', [App\Http\Controllers\Api\UserDashboardController::class, 'home']);
+    Route::get('/infos', [App\Http\Controllers\Api\UserDashboardController::class, 'infos']);
     Route::post('/users/pair', [UserController::class, 'pairChild']);
     Route::get('/users/children', [UserController::class, 'getMyChildren']);
+    Route::post('/users/sync-contacts', [UserController::class, 'syncContacts']);
 
-    // --- MANAJEMEN TOKO (MERCHANT) ---
-    Route::post('/users/verify-data', [UserController::class, 'uploadVerification']); // Upload KTP
-    Route::post('/stores', [StoreController::class, 'store']);
-    Route::get('/stores/my', [StoreController::class, 'myStores']);
-    Route::put('/stores/{id}', [StoreController::class, 'update']);
+    // --- C. MERCHANT REGISTRATION FLOW (Daftar Jadi Pedagang) ---
+    Route::post('/users/verify-data', [UserController::class, 'uploadVerification']); // Upload KTP/KTM
+    Route::post('/merchant/register', [MerchantController::class, 'register']); // Submit Form Daftar Merchant
+    Route::get('/merchant/status', [MerchantController::class, 'checkStatus']); // Cek diacc/tidak
+    Route::put('/merchant/update', [MerchantController::class, 'update']); // Revisi data pendaftaran jika ditolak
 
-    // --- PRODUK ---
-    Route::get('/products', [ProductController::class, 'index']); // Support ?toko=simart&search=...
-    Route::post('/products', [ProductController::class, 'store']); // Logic Margin 15% & PO
+    // --- D. STORE MANAGEMENT (Operasional Toko - Setelah Jadi Merchant) ---
+    Route::post('/stores', [StoreController::class, 'store']); // Buka Toko Baru
+    Route::get('/stores/my', [StoreController::class, 'myStores']); // List Toko Saya
+    Route::get('/stores/my/{id}/dashboard', [StoreController::class, 'myStoreDetail']); // Dashboard Toko
+    Route::post('/stores/{id}/update', [StoreController::class, 'update']); // Update toko
+    Route::get('/stores/{id}/qr', [StoreController::class, 'generateQrCode']); // Generate Qr toko
+
+    Route::get('/merchant/qr', [MerchantController::class, 'generateQrCode']); // QR Toko
+    Route::get('/merchant/dashboard/summary', [MerchantDashboardController::class, 'getDailySummary']); // Statistik Harian
+
+    // --- E. PUBLIC STORE VIEW (User lihat Kantin) ---
+    Route::get('/stores', [StoreController::class, 'index']);
+    Route::get('/stores/{id}', [StoreController::class, 'show']);
+
+    // --- F. PRODUCT MANAGEMENT ---
+    Route::get('/products', [ProductController::class, 'index']);
+    Route::get('/products/my-grouped', [ProductController::class, 'myGroupedProducts']); // Produk per kategori merchant
     Route::get('/products/{barcode}', [ProductController::class, 'getByBarcode']);
-    Route::put('/products/{id}', [ProductController::class, 'update']);
-    Route::delete('/products/{id}', [ProductController::class, 'destroy']);
+    Route::post('/products', [ProductController::class, 'store']); // Tambah Produk
+    Route::put('/products/{id}', [ProductController::class, 'update']); // Edit Produk
+    Route::delete('/products/{id}', [ProductController::class, 'destroy']); // Hapus Produk
 
-    // --- FAVORIT ---
+    // --- G. TRANSACTIONS (Kasir & Pembayaran) ---
+    Route::post('/checkout', [TransactionController::class, 'checkout']); // User bayar keranjang
+    Route::get('/transactions', [TransactionController::class, 'history']);
+    Route::get('/transactions/{code}', [TransactionController::class, 'getTransactionDetail']);
+    Route::post('/transactions/confirm-payment', [TransactionController::class, 'confirmPaymentByUser']); // User konfirmasi
+
+    // Fitur Kasir Merchant
+    Route::post('/transactions/request-payment', [TransactionController::class, 'requestPaymentToUser']); // Tagih user
+    Route::get('/transactions/pending-bills', [TransactionController::class, 'getUserPendingBills']); // Tagihan user
+    Route::get('/merchant/sales', [TransactionController::class, 'salesHistory']); // Riwayat Penjualan
+
+    // QR & Kiosk
+    Route::post('/transactions/generate-qr', [TransactionController::class, 'createQrForCashier']);
+    Route::post('/transactions/pay-qr', [TransactionController::class, 'payByQr']);
+    Route::post('/transactions/pay-merchant', [TransactionController::class, 'payMerchantQr']);
+    Route::post('/transactions/pay-kiosk-card', [TransactionController::class, 'payByCardOnKiosk']);
+    Route::post('/transactions/pay-store', [TransactionController::class, 'payStoreQr']);
+    Route::post('/kiosk/check-balance', [UserController::class, 'checkBalance']);
+
+    // --- H. PRE-ORDER & FAVORITE ---
+    Route::post('/po/checkout', [PreOrderController::class, 'store']);
+    Route::get('/po/my-orders', [PreOrderController::class, 'myOrders']);
+    Route::post('/po/{id}/cancel', [PreOrderController::class, 'cancel']);
     Route::post('/favorites/toggle', [FavoriteController::class, 'toggle']);
     Route::get('/favorites', [FavoriteController::class, 'myFavorites']);
 
-    // --- TRANSAKSI (KASIR & PEMBELIAN) ---
-    Route::post('/checkout', [TransactionController::class, 'checkout']); // Metode 1: Direct NFC
-    Route::get('/transactions', [TransactionController::class, 'history']); // Riwayat Belanja User
-    Route::post('/transactions/request-payment', [TransactionController::class, 'requestPaymentToUser']); // 1. Kasir kirim tagihan
-    Route::get('/transactions/pending-bills', [TransactionController::class, 'getUserPendingBills']); // 2. User cek ada tagihan gak?
-    Route::post('/transactions/confirm-payment', [TransactionController::class, 'confirmPaymentByUser']); // 3. User bayar
-    Route::get('/transactions/{code}', [TransactionController::class, 'getTransactionDetail']); // struk transaksi
-    Route::get('/merchant/sales', [TransactionController::class, 'salesHistory']); // Dashboard Merchant
-
-    // Fitur Transaksi QR (Metode 2)
-    Route::post('/transactions/generate-qr', [TransactionController::class, 'createQrForCashier']); // Kasir
-    Route::post('/transactions/pay-qr', [TransactionController::class, 'payByQr']); // Murid Scan
-    Route::post('/transactions/pay-kiosk-card', [TransactionController::class, 'payByCardOnKiosk']); // Murid Tap di Kiosk
-
-    // --- PRE-ORDER ---
-    Route::post('/po/checkout', [PreOrderController::class, 'store']); // Beli PO
-    Route::get('/po/my-orders', [PreOrderController::class, 'myOrders']);
-    Route::post('/po/{id}/cancel', [PreOrderController::class, 'cancel']); // Batal (Kena Pinalti)
-
-    // --- KEUANGAN (USER) ---
-    Route::post('/balance/request-topup', [BalanceController::class, 'requestTopUp']); // Upload Bukti
-    Route::post('/balance/withdraw', [BalanceController::class, 'withdraw']); // Request Tarik
-    Route::post('/balance/transfer', [BalanceController::class, 'transfer']); // P2P
-    Route::get('/balance/recent-transfers', [BalanceController::class, 'getRecentTransfers']); // recent transfer
-
-    // --- KIOSK ---
-    Route::post('/kiosk/check-balance', [UserController::class, 'checkBalance']); // NFC/QR Member
+    // --- I. WALLET / BALANCE ---
+    Route::post('/balance/request-topup', [BalanceController::class, 'requestTopUp']);
+    Route::post('/balance/withdraw', [BalanceController::class, 'withdraw']);
+    Route::post('/balance/transfer', [BalanceController::class, 'transfer']);
+    Route::get('/balance/recent-transfers', [BalanceController::class, 'getRecentTransfers']);
 
     // =============================================================
-    // 3. ADMIN DASHBOARD (Role Protected inside Controller)
+    // GROUP 3: ADMIN DASHBOARD (PUSAT)
     // =============================================================
+    Route::prefix('admin')->group(function () {
+        Route::get('/stats', [AdminController::class, 'getDashboardStats']);
+        Route::post('/change-pin', [AdminController::class, 'changePin']);
+        Route::get('/users', [AdminController::class, 'searchUsers']);
+        Route::post('/fix-member-ids', [AdminController::class, 'generateOldMemberIds']);
 
-    // Dashboard Utama
-    Route::get('/admin/stats', [AdminController::class, 'getDashboardStats']);
-    Route::post('/admin/change-pin', [AdminController::class, 'changePin']); // ganti pin
-    Route::get('/admin/users', [AdminController::class, 'searchUsers']); // search user
+        // Verifikasi User
+        Route::get('/verifications', [AdminController::class, 'getPendingUsers']);
+        Route::put('/verifications/{id}/approve', [AdminController::class, 'approveUser']);
+        Route::put('/verifications/{id}/reject', [AdminController::class, 'rejectUser']);
+        Route::put('/users/{id}/reset', [AdminController::class, 'resetUserAccess']);
+        Route::put('/users/{id}', [AdminController::class, 'updateUser']);
 
-    // Manajemen User (Admin Pusat/Verifikator)
-    Route::get('/admin/verifications', [AdminController::class, 'getPendingUsers']);
-    Route::put('/admin/verifications/{id}/approve', [AdminController::class, 'approveUser']);
-    Route::put('/admin/verifications/{id}/reject', [AdminController::class, 'rejectUser']);
-    Route::put('/admin/users/{id}/reset', [AdminController::class, 'resetUserAccess']); // Reset Pass/PIN
-    Route::post('/admin/fix-member-ids', [AdminController::class, 'generateOldMemberIds']); // Maintenance
-    Route::put('/admin/users/{id}', [AdminController::class, 'updateUser']); // update user
+        // Verifikasi Merchant (Baru)
+        Route::get('/merchants/pending', [MerchantVerificationController::class, 'listPending']);
+        Route::get('/merchants/{id}', [MerchantVerificationController::class, 'show']);
+        Route::post('/merchants/{id}/approve', [MerchantVerificationController::class, 'approve']);
+        Route::post('/merchants/{id}/reject', [MerchantVerificationController::class, 'reject']);
 
-    // CMS Informasi (Admin Pusat)
-    Route::post('/admin/informations', [InformationController::class, 'store']);
-    Route::delete('/admin/informations/{id}', [InformationController::class, 'destroy']);
+        // Keuangan
+        Route::get('/topups', [AdminController::class, 'getPendingTopUps']);
+        Route::put('/topups/{id}/approve', [AdminController::class, 'approveTopUp']);
+        Route::post('/balance/topup-manual', [AdminController::class, 'manualTopUp']);
+        Route::get('/withdrawals', [AdminController::class, 'getPendingWithdrawals']);
+        Route::post('/withdrawals/{id}/approve', [AdminController::class, 'approveWithdrawal']);
+        Route::put('/withdrawals/{id}/reject', [AdminController::class, 'rejectWithdrawal']);
 
-    // Keuangan (Admin Keuangan)
-    Route::get('/admin/topups', [AdminController::class, 'getPendingTopUps']);
-    Route::put('/admin/topups/{id}/approve', [AdminController::class, 'approveTopUp']);
-    Route::post('/admin/balance/topup-manual', [AdminController::class, 'manualTopUp']); // Tunai
-
-    Route::get('/admin/withdrawals', [AdminController::class, 'getPendingWithdrawals']);
-    // Gunakan POST untuk approve withdrawal karena ada upload bukti transfer admin
-    Route::post('/admin/withdrawals/{id}/approve', [AdminController::class, 'approveWithdrawal']);
-    Route::put('/admin/withdrawals/{id}/reject', [AdminController::class, 'rejectWithdrawal']);
-
-    // Gudang & PO (Admin Kasir)
-    Route::get('/admin/products/missing-rack', [AdminController::class, 'getProductsMissingRack']);
-    Route::put('/admin/products/{id}/rack', [AdminController::class, 'updateRackLocation']);
-    Route::post('/admin/po/take', [PreOrderController::class, 'markAsTaken']); // Scan Pengambilan Barang PO
-
+        // Gudang & Info
+        Route::get('/products/missing-rack', [AdminController::class, 'getProductsMissingRack']);
+        Route::put('/products/{id}/rack', [AdminController::class, 'updateRackLocation']);
+        Route::post('/po/take', [PreOrderController::class, 'markAsTaken']);
+        Route::post('/informations', [InformationController::class, 'store']);
+        Route::delete('/informations/{id}', [InformationController::class, 'destroy']);
+    });
 });

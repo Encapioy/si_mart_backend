@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Livewire;
 
 use Livewire\Component;
@@ -12,7 +13,7 @@ use App\Models\Transaction;
 class PaymentPage extends Component
 {
     public $store;
-    public $amount = ''; // String biar bisa dihapus/edit
+    public $amount = '';
     public $note = '';
     public $pin = '';
 
@@ -23,6 +24,7 @@ class PaymentPage extends Component
 
     public function processPayment()
     {
+        // Validasi
         $this->validate([
             'amount' => 'required|numeric|min:500',
             'pin' => 'required',
@@ -30,7 +32,7 @@ class PaymentPage extends Component
 
         $user = Auth::user();
 
-        // 1. Cek PIN
+        // 1. Cek PIN (Plain Text sesuai request kamu)
         if ($this->pin != $user->pin) {
             $this->addError('pin', 'PIN Salah!');
             return;
@@ -42,31 +44,31 @@ class PaymentPage extends Component
             return;
         }
 
-        // 3. Eksekusi
+        // 3. Eksekusi Database
         DB::transaction(function () use ($user) {
-            // Kurangi Saldo User
+
+            // A. Kurangi Saldo Pembeli
             $user->saldo -= $this->amount;
             $user->save();
 
-            // Tambah Saldo Merchant
+            // B. Tambah Saldo Merchant
             $merchant = User::find($this->store->user_id);
-            $merchant->saldo += $this->amount;
-            $merchant->save();
+            if ($merchant) {
+                $merchant->saldo += $this->amount;
+                $merchant->save();
+            }
 
-            // Catat
+            // C. Catat Riwayat Transaksi (SESUAI KOLOM DB KAMU)
             Transaction::create([
+                'transaction_code' => 'TRX-' . time() . rand(100, 999), // Pengganti reference_code
                 'user_id' => $user->id,
-                'merchant_id' => $merchant->id,
-                'store_id' => $this->store->id,
-                'amount' => $this->amount,
-                'type' => 'payment',
-                'status' => 'paid',
-                'description' => $this->note ?? 'Pembayaran Web',
-                'reference_code' => 'WEB-' . time(),
+                'total_bayar' => $this->amount,
+                'status' => 'paid', // Pastikan ENUM di db ada 'paid' atau 'success'
+                'tanggal_transaksi' => now(),  // Mengisi waktu saat ini
+                'expired_at' => null,   // Kosongkan karena langsung lunas (pastikan kolom nullable)
             ]);
         });
 
-        // Balik ke dashboard (atau halaman sukses)
         return redirect()->route('dashboard');
     }
 

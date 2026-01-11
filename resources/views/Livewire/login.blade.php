@@ -2,7 +2,7 @@
     <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-sm border border-slate-100">
         <div class="text-center mb-8">
             <h1 class="text-2xl font-bold text-slate-800">Selamat Datang</h1>
-            <p class="text-slate-400 text-xs">Login Admin / User</p>
+            <p class="text-slate-400 text-xs">Silakan login untuk melanjutkan</p>
         </div>
 
         @error('username')

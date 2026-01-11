@@ -9,10 +9,12 @@ class Product extends Model
 {
     use HasFactory;
 
+    // 1. Definisikan kolom yang boleh diisi (Tambahkan 'deskripsi')
     protected $fillable = [
         'store_id',
         'barcode',
         'nama_produk',
+        'deskripsi',   // <-- JANGAN LUPA INI
         'harga',
         'diskon',
         'stok',
@@ -23,14 +25,32 @@ class Product extends Model
         'seller_type'
     ];
 
-    // Relasi: Produk ini milik siapa? (Bisa User, Bisa Admin)
+    // Otomatis tambahkan URL gambar ke JSON response
+    protected $appends = ['gambar_url'];
+
+    // --- RELASI ---
+
+    // Produk milik Toko
+    public function store()
+    {
+        return $this->belongsTo(Store::class);
+    }
+
+    // Produk milik Seller (Polymorphic: Bisa User / Admin)
     public function seller()
     {
         return $this->morphTo();
     }
 
-    // --- FITUR HITUNG HARGA DISKON ---
-    // Ini helper function biar di controller gak ribet ngitungnya
+    // Relasi Favorit (User menyukai produk)
+    public function favorites()
+    {
+        return $this->belongsToMany(User::class, 'favorites', 'product_id', 'user_id');
+    }
+
+    // --- ACCESSOR (Logic Tambahan) ---
+
+    // Hitung harga setelah diskon
     public function getHargaAkhirAttribute()
     {
         if ($this->diskon > 0) {
@@ -40,39 +60,24 @@ class Product extends Model
         return $this->harga;
     }
 
-    // Cek apakah produk ini sedang difavoritkan oleh user yg sedang login?
-    // Fitur ini penting untuk Frontend (menyalakan ikon hati ❤️)
+    // Cek status Like user login
     public function getIsFavoritedAttribute()
     {
-        // Jika ada user login, cek apakah dia ada di list user yg me-like produk ini
         if (auth('sanctum')->check()) {
             return $this->favorites()->where('user_id', auth('sanctum')->id())->exists();
         }
         return false;
     }
 
-    public function favorites()
-    {
-        return $this->belongsToMany(User::class, 'favorites', 'product_id', 'user_id');
-    }
-
-    protected $appends = ['gambar_url', 'gambar_thumb_url'];
-
-    // 1. URL GAMBAR ASLI (Detail Produk)
+    // URL Gambar yang Aman (Handle jika null)
     public function getGambarUrlAttribute()
     {
         if ($this->gambar) {
-            return asset('storage/products/originals/' . $this->gambar);
+            // PASTIKAN: Path ini sesuai dengan tempat kamu menyimpan file saat upload.
+            // Kalau uploadnya sederhana, biasanya cuma 'storage/' . $this->gambar
+            return asset('storage/' . $this->gambar);
         }
-        return null; // Atau URL gambar default
-    }
-
-    // 2. URL GAMBAR KECIL (List Produk)
-    public function getGambarThumbUrlAttribute()
-    {
-        if ($this->gambar) {
-            return asset('storage/products/thumbnails/' . $this->gambar);
-        }
-        return null;
+        // Gambar default kalau produk gak punya foto
+        return 'https://ui-avatars.com/api/?name=' . urlencode($this->nama_produk) . '&background=random';
     }
 }

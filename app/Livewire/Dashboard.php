@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Livewire;
 
 use Livewire\Component;
@@ -9,12 +10,13 @@ class Dashboard extends Component
     public function render()
     {
         $user = Auth::user();
-        // QR User sederhana buat ditunjukin ke kasir (Topup)
-        $qrData = 'SIPAY:USER:' . $user->id;
+
+        // Ambil Member ID. Kalau kosong (user lama), kita kasih peringatan/fallback
+        $memberId = $user->member_id;
 
         return view('livewire.dashboard', [
-            'user' => $user,
-            'qrCode' => $qrData
+            'memberId' => $memberId,
+            'user' => $user
         ]);
     }
 }

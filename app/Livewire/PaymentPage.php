@@ -4,17 +4,17 @@ namespace App\Livewire;
 
 use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use App\Models\Store;
 use App\Models\User;
 use App\Models\Transaction;
+use App\Models\BalanceMutation; // <--- JANGAN LUPA IMPORT INI
 
 class PaymentPage extends Component
 {
     public $store;
     public $amount = '';
-    public $note = '';
+    public $note = ''; // Catatan opsional
     public $pin = '';
 
     public function mount($storeId)
@@ -24,7 +24,7 @@ class PaymentPage extends Component
 
     public function processPayment()
     {
-        // Validasi
+        // 1. Validasi
         $this->validate([
             'amount' => 'required|numeric|min:500',
             'pin' => 'required',
@@ -32,19 +32,19 @@ class PaymentPage extends Component
 
         $user = Auth::user();
 
-        // 1. Cek PIN (Plain Text sesuai request kamu)
+        // 2. Cek PIN (Plain Text)
         if ($this->pin != $user->pin) {
             $this->addError('pin', 'PIN Salah!');
             return;
         }
 
-        // 2. Cek Saldo
+        // 3. Cek Saldo
         if ($user->saldo < $this->amount) {
             $this->addError('amount', 'Saldo tidak cukup!');
             return;
         }
 
-        // 3. Eksekusi Database
+        // 4. Eksekusi Database (Pakai Transaction biar aman)
         DB::transaction(function () use ($user) {
 
             // A. Kurangi Saldo Pembeli
@@ -53,21 +53,54 @@ class PaymentPage extends Component
 
             // B. Tambah Saldo Merchant
             $merchant = User::find($this->store->user_id);
+            // Cek merchant ada atau tidak (jaga-jaga akun terhapus)
             if ($merchant) {
                 $merchant->saldo += $this->amount;
                 $merchant->save();
             }
 
-            // C. Catat Riwayat Transaksi (SESUAI KOLOM DB KAMU)
+            // C. Catat Struk (Tabel Transactions - Laporan Admin)
             Transaction::create([
-                'transaction_code' => 'TRX-' . time() . rand(100, 999), // Pengganti reference_code
+                'transaction_code' => 'TRX-' . time() . rand(100, 999),
                 'user_id' => $user->id,
                 'total_bayar' => $this->amount,
-                'status' => 'paid', // Pastikan ENUM di db ada 'paid' atau 'success'
-                'tanggal_transaksi' => now(),  // Mengisi waktu saat ini
-                'expired_at' => null,   // Kosongkan karena langsung lunas (pastikan kolom nullable)
+                'status' => 'paid',
+                'tanggal_transaksi' => now(),
+                'expired_at' => null,
+
+                // --- UPDATE LOGIKA BARU ---
+                'type' => 'payment', // Penanda Pembayaran Toko
+                'description' => 'Pembayaran ke ' . $this->store->nama_toko . ($this->note ? " ({$this->note})" : ''),
+                // 'store_id' => $this->store->id, // Uncomment jika kolom store_id ada
             ]);
+
+            // D. Catat Mutasi Pembeli (Debit / Uang Keluar)
+            BalanceMutation::create([
+                'user_id' => $user->id,
+                'type' => 'debit',
+                'amount' => $this->amount,
+                'current_balance' => $user->saldo,
+                'category' => 'payment',
+                'description' => 'Pembayaran ke ' . $this->store->nama_toko,
+                'related_user_id' => $merchant ? $merchant->id : null
+            ]);
+
+            // E. Catat Mutasi Penjual (Kredit / Uang Masuk)
+            if ($merchant) {
+                BalanceMutation::create([
+                    'user_id' => $merchant->id,
+                    'type' => 'credit',
+                    'amount' => $this->amount,
+                    'current_balance' => $merchant->saldo,
+                    'category' => 'payment',
+                    'description' => 'Terima pembayaran dari ' . $user->nama_lengkap,
+                    'related_user_id' => $user->id
+                ]);
+            }
         });
+
+        // Feedback Sukses
+        session()->flash('success', 'Pembayaran Berhasil sebesar Rp ' . number_format($this->amount));
 
         return redirect()->route('dashboard');
     }

@@ -8,8 +8,13 @@ class TopUp extends Model
     use HasFactory;
     protected $fillable = ['user_id', 'amount', 'bukti_transfer', 'status', 'admin_id'];
 
+    public function admin()
+    {
+        return $this->belongsTo(User::class, 'admin_id');
+    }
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'user_id');
     }
+
 }

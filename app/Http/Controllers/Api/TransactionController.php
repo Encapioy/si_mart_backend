@@ -794,8 +794,7 @@ class TransactionController extends Controller
 
         $user = $request->user();
 
-        // 2. CEK PIN (VERSI PLAIN TEXT)
-        // Karena kamu minta tanpa Hash, pakai operator !=
+        // 2. CEK PIN
         if ($request->pin != $user->pin) {
             return response()->json(['message' => 'PIN Salah!'], 401);
         }
@@ -806,17 +805,15 @@ class TransactionController extends Controller
         }
 
         // Cari Toko & Pemilik
-        $store = Store::find($request->store_id);
-
-        // Pastikan ambil user lewat user_id di toko
-        $merchantUser = User::find($store->user_id);
+        $store = \App\Models\Store::find($request->store_id);
+        $merchantUser = \App\Models\User::find($store->user_id);
 
         if (!$merchantUser) {
             return response()->json(['message' => 'Merchant toko ini tidak valid'], 404);
         }
 
         // 4. Proses Transaksi
-        DB::beginTransaction();
+        \DB::beginTransaction();
         try {
             // A. Kurangi Saldo Pembeli
             $user->saldo -= $request->amount;
@@ -826,29 +823,54 @@ class TransactionController extends Controller
             $merchantUser->saldo += $request->amount;
             $merchantUser->save();
 
-            // C. Catat Riwayat (SESUAI KOLOM DATABASE KAMU)
-            // Kolom: transaction_code, user_id, total_bayar, status, expired_at, tanggal_transaksi
-            $trx = Transaction::create([
-                'transaction_code' => 'TRX-' . time() . rand(100, 999), // Pengganti reference_code
+            // C. Catat Struk (Tabel Transactions - Untuk Laporan Admin)
+            $trx = \App\Models\Transaction::create([
+                'transaction_code' => 'TRX-' . time() . rand(100, 999),
                 'user_id' => $user->id,
-                'total_bayar' => $request->amount, // Pengganti amount
-                'status' => 'paid',           // Pastikan enum DB support 'paid'
-                'tanggal_transaksi' => now(),            // Kolom manual tanggal
-                'expired_at' => null,             // Nullable
+                'total_bayar' => $request->amount,
+                'status' => 'paid',
+                'type' => 'payment', // Tipe Payment
+                'description' => 'Pembayaran ke ' . $store->nama_toko,
+                'tanggal_transaksi' => now(),
             ]);
 
-            DB::commit();
+            // --- TAMBAHAN BARU: BALANCE MUTATION ---
+
+            // D. Catat Mutasi Pembeli (Uang Keluar / Debit)
+            \App\Models\BalanceMutation::create([
+                'user_id' => $user->id,
+                'type' => 'debit', // Merah
+                'amount' => $request->amount,
+                'current_balance' => $user->saldo, // Saldo setelah dipotong
+                'category' => 'payment',
+                'description' => 'Pembayaran ke ' . $store->nama_toko,
+                'related_user_id' => $merchantUser->id
+            ]);
+
+            // E. Catat Mutasi Penjual (Uang Masuk / Credit)
+            \App\Models\BalanceMutation::create([
+                'user_id' => $merchantUser->id,
+                'type' => 'credit', // Hijau
+                'amount' => $request->amount,
+                'current_balance' => $merchantUser->saldo, // Saldo setelah ditambah
+                'category' => 'payment',
+                'description' => 'Pembayaran diterima dari ' . $user->nama_lengkap,
+                'related_user_id' => $user->id
+            ]);
+
+            // ---------------------------------------
+
+            \DB::commit();
 
             return response()->json([
                 'status' => 'success',
-                // PERBAIKAN: Ganti $store->name jadi $store->nama_toko
                 'message' => 'Pembayaran berhasil ke ' . $store->nama_toko,
                 'data' => $trx,
                 'sisa_saldo' => $user->saldo
             ]);
 
         } catch (\Exception $e) {
-            DB::rollBack();
+            \DB::rollBack();
             return response()->json(['message' => 'Transaksi gagal: ' . $e->getMessage()], 500);
         }
     }

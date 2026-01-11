@@ -11,6 +11,7 @@ use App\Models\Admin;
 use App\Models\Transaction;
 use App\Models\Product;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 
 class AdminController extends Controller
 {
@@ -90,27 +91,46 @@ class AdminController extends Controller
         if (!$targetUser)
             return response()->json(['message' => 'User tidak ditemukan'], 404);
 
-        // Eksekusi Top Up
-        $targetUser->saldo += $request->amount;
-        $targetUser->save();
+        // --- MULAI DATABASE TRANSACTION (WAJIB ADA) ---
+        DB::beginTransaction();
+        try {
+            // A. Update Saldo User
+            $targetUser->saldo += $request->amount;
+            $targetUser->save();
 
-        $this->recordMutation($targetUser, $request->amount, 'credit', 'topup', 'Top Up Saldo');
+            // B. Masukkan ke Tabel 'top_ups' (Sesuai request kamu)
+            \App\Models\TopUp::create([
+                'user_id' => $targetUser->id,
+                'amount' => $request->amount,
+                'status' => 'approved', // Langsung sukses karena tunai
+                'admin_id' => $request->user()->id,
+                'bukti_transfer' => 'MANUAL_CASH', // Penanda topup manual
+                // pastikan kolom lain di tabel top_ups kamu nullable atau diisi default
+            ]);
 
-        // Opsional: Catat di tabel TopUp juga dengan status 'approved' otomatis
-        // Biar masuk laporan keuangan
-        TopUp::create([
-            'user_id' => $targetUser->id,
-            'amount' => $request->amount,
-            'bukti_transfer' => 'CASH_DEPOSIT', // Penanda kalau ini tunai
-            'status' => 'approved',
-            'admin_id' => $request->user()->id
-        ]);
+            // C. Masukkan ke 'balance_mutations' (PENTING!)
+            // Ini supaya di aplikasi user, topup ini tetap muncul di "Riwayat Saldo"
+            \App\Models\BalanceMutation::create([
+                'user_id' => $targetUser->id,
+                'type' => 'credit', // Uang Masuk
+                'amount' => $request->amount,
+                'current_balance' => $targetUser->saldo,
+                'category' => 'topup',
+                'description' => 'Top Up Tunai via Admin',
+                'related_user_id' => $request->user()->id
+            ]);
 
-        return response()->json([
-            'message' => 'Top Up Tunai Berhasil',
-            'user' => $targetUser->nama_lengkap,
-            'saldo_baru' => $targetUser->saldo
-        ]);
+            DB::commit(); // Simpan permanen
+
+            return response()->json([
+                'message' => 'Top Up Berhasil',
+                'saldo_baru' => $targetUser->saldo
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack(); // Batalkan semua jika error
+            return response()->json(['message' => 'Gagal: ' . $e->getMessage()], 500);
+        }
     }
 
     // 5. TOP UP SALDO USER (Web Version)

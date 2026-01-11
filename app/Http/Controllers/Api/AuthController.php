@@ -409,4 +409,29 @@ class AuthController extends Controller
 
         return response()->json(['status' => 'success', 'message' => 'PIN berhasil diubah']);
     }
+
+    // 8. GENERATE QR CODE
+    public function getMyQrCode(Request $request)
+    {
+        $user = $request->user();
+
+        // Pastikan Member ID sudah ada (jaga-jaga)
+        if (!$user->member_id) {
+            return response()->json(['message' => 'Member ID belum digenerate'], 400);
+        }
+
+        // PAYLOAD MURNI MEMBER ID
+        // Hasil: "202569833207"
+        $payload = $user->member_id;
+
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'member_id' => $user->member_id,
+                'nama' => $user->nama_lengkap,
+                'qr_payload' => $payload, // Cuma angka
+                'qr_image_url' => 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=' . $payload
+            ]
+        ]);
+    }
 }

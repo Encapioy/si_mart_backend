@@ -7,9 +7,16 @@ use App\Http\Controllers\Api\AdminController;
 // Livewire Components
 use App\Livewire\Login;
 use App\Livewire\Dashboard;
-use App\Livewire\ScanQr;
+use App\Livewire\ScanPage;
 use App\Livewire\PaymentPage;
+use App\Livewire\TransferPage;
 use App\Livewire\Register;
+use App\Livewire\AdminMerchantDetail;
+use App\Livewire\AdminMerchantList;
+use App\Livewire\AdminDashboard;
+use App\Livewire\AdminTransactionHistory;
+use App\Livewire\AdminTopupHistory;
+use App\Livewire\AdminTopup;
 
 // 1. Landing Page
 Route::get('/', function () {
@@ -23,13 +30,21 @@ Route::get('/logout', [AuthController::class, 'logoutWeb'])->name('logout');
 // 3. User Web Routes
 Route::middleware(['auth:web'])->group(function () {
     Route::get('/dashboard', Dashboard::class)->name('dashboard');
-    Route::get('/scan', ScanQr::class)->name('scan');
+    Route::get('/scan', ScanPage::class)->name('scan');
+    Route::get('/transfer/{memberId}', TransferPage::class)->name('transfer.user');
     Route::get('/pay/{storeId}', PaymentPage::class)->name('pay');
 });
 
 // 4. Admin Routes (Jangan diganggu)
 Route::middleware(['auth:admin'])->group(function () {
-    Route::get('/admin-panel/topup', [AdminController::class, 'showTopUpPage'])->name('admin.topup');
+    Route::get('/admin/topup-panel', AdminTopup::class)->name('admin.topup');
     Route::get('/admin/ajax/cashiers', [AdminController::class, 'getCashiers']);
     Route::get('/admin/ajax/search-user', [AdminController::class, 'webSearchUser']);
+
+    // ADMIN PUSAT WEB DASHBOARD
+    Route::get('/admin/dashboard', AdminDashboard::class)->name('admin.dashboard');
+    Route::get('/admin/merchant/', AdminMerchantList::class)->name('admin.merchant.list');
+    Route::get('/admin/merchant/{storeId}', AdminMerchantDetail::class)->name('admin.merchant.detail');
+    Route::get('/admin/transactions', AdminTransactionHistory::class)->name('admin.transactions');
+    Route::get('/admin/topups', AdminTopupHistory::class)->name('admin.topups');
 });

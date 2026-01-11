@@ -29,4 +29,9 @@ class Transaction extends Model
     {
         return $this->hasMany(TransactionItem::class);
     }
+
+    public function store()
+    {
+        return $this->belongsTo(Store::class, 'store_id');
+    }
 }

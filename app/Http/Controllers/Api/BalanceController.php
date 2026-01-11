@@ -9,6 +9,8 @@ use App\Models\Withdrawal;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use App\Models\TopUp;
+use App\Models\Transaction;
+use App\Models\BalanceMutation;
 
 class BalanceController extends Controller
 {
@@ -123,28 +125,40 @@ class BalanceController extends Controller
             $sender->save();
 
             // PERBAIKAN DI SINI: Category harus 'transfer_out' (bukan 'transfer')
-            $this->recordMutation(
-                $sender,
-                $request->amount,
-                'debit',
-                'transfer_out', // <--- PENTING!
-                'Transfer ke ' . $receiver->nama_lengkap,
-                $receiver->id
-            );
+            BalanceMutation::create([
+                'user_id' => $sender->id,
+                'type' => 'debit',
+                'amount' => $request->amount,
+                'current_balance' => $sender->saldo,
+                'category' => 'transfer_out', // Kategori spesifik
+                'description' => 'Transfer ke ' . $receiver->nama_lengkap,
+                'related_user_id' => $receiver->id
+            ]);
 
             // B. PENERIMA (Kredit)
             $receiver->saldo += $request->amount;
             $receiver->save();
 
             // PERBAIKAN DI SINI: Category harus 'transfer_in' (bukan 'transfer')
-            $this->recordMutation(
-                $receiver,
-                $request->amount,
-                'credit',
-                'transfer_in', // <--- PENTING!
-                'Terima saldo dari ' . $sender->nama_lengkap,
-                $sender->id
-            );
+            BalanceMutation::create([
+                'user_id' => $receiver->id,
+                'type' => 'credit',
+                'amount' => $request->amount,
+                'current_balance' => $receiver->saldo,
+                'category' => 'transfer_in', // Kategori spesifik
+                'description' => 'Terima saldo dari ' . $sender->nama_lengkap,
+                'related_user_id' => $sender->id
+            ]);
+
+            Transaction::create([
+                'transaction_code' => 'TRF-' . time() . rand(100, 999),
+                'user_id' => $sender->id, // Transaksi milik pengirim
+                'total_bayar' => $request->amount,
+                'status' => 'paid',
+                'type' => 'transfer', // Tipe umum untuk admin
+                'description' => 'Transfer ke ' . $receiver->nama_lengkap,
+                'tanggal_transaksi' => now(),
+            ]);
 
             return response()->json([
                 'message' => 'Transfer Berhasil!',

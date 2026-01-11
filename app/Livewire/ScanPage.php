@@ -1,11 +1,13 @@
 <?php
+
 namespace App\Livewire;
+
 use Livewire\Component;
 
-class ScanQr extends Component
+class ScanPage extends Component
 {
     public function render()
     {
-        return view('livewire.scan-qr');
+        return view('livewire.scan-page');
     }
 }

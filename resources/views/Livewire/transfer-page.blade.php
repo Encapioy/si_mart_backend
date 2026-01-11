@@ -1,18 +1,18 @@
 <div class="min-h-screen bg-slate-50 text-slate-800 flex flex-col p-6">
 
     <div class="bg-white p-4 rounded-xl flex items-center space-x-3 mb-8 border border-slate-200 shadow-sm">
-        <div class="w-10 h-10 bg-green-100 text-green-600 rounded-full flex items-center justify-center font-bold text-lg">
-            {{ substr($store->nama_toko ?? 'T', 0, 1) }}
+        <div class="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold text-lg">
+            {{ substr($targetUser->nama_lengkap ?? 'U', 0, 1) }}
         </div>
         <div>
-            <h3 class="font-bold text-sm text-slate-800">{{ $store->nama_toko ?? 'Nama Toko' }}</h3>
-            <p class="text-[10px] text-green-600 flex items-center bg-green-50 px-2 py-0.5 rounded-full w-fit mt-1 border border-green-100">
-                <span class="w-1.5 h-1.5 bg-green-500 rounded-full mr-1 animate-pulse"></span> Verified Merchant
+            <h3 class="font-bold text-sm text-slate-800">{{ $targetUser->nama_lengkap ?? 'Nama User' }}</h3>
+            <p class="text-[10px] text-slate-500 flex items-center mt-0.5 font-mono bg-slate-100 px-2 py-0.5 rounded w-fit">
+                ID: {{ $targetUser->member_id }}
             </p>
         </div>
     </div>
 
-    <form wire:submit.prevent="processPayment" class="flex-1 flex flex-col">
+    <form wire:submit.prevent="processTransfer" class="flex-1 flex flex-col">
 
         <div class="flex-1 flex flex-col items-center justify-center">
             <p class="text-slate-400 text-xs font-bold tracking-widest mb-4">MASUKKAN NOMINAL</p>
@@ -39,13 +39,13 @@
 
             <div class="relative">
                 <input wire:model="note" type="text"
-                    class="w-full bg-white border border-slate-200 rounded-xl px-4 py-4 text-sm text-slate-800 outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition placeholder-slate-400 shadow-sm"
-                    placeholder="Catatan (Opsional)...">
+                    class="w-full bg-white border border-slate-200 rounded-xl px-4 py-4 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition placeholder-slate-400 shadow-sm"
+                    placeholder="Catatan transfer (Opsional)...">
             </div>
 
             <div class="relative">
                 <input wire:model="pin" type="password" inputmode="numeric" maxlength="6"
-                    class="w-full bg-white border border-slate-200 rounded-xl px-4 py-4 text-sm text-slate-800 outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition text-center tracking-[0.5em] font-bold placeholder-slate-300 shadow-sm"
+                    class="w-full bg-white border border-slate-200 rounded-xl px-4 py-4 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition text-center tracking-[0.5em] font-bold placeholder-slate-300 shadow-sm"
                     placeholder="••••••">
                 @error('pin')
                     <span class="text-red-500 text-xs text-center block mt-2 font-medium">{{ $message }}</span>
@@ -54,9 +54,9 @@
 
             <button type="submit"
                 wire:loading.attr="disabled"
-                class="w-full bg-green-500 text-white font-bold py-4 rounded-xl hover:bg-green-600 transition shadow-lg shadow-green-500/20 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed">
+                class="w-full bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-500/20 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed">
 
-                <span wire:loading.remove>BAYAR SEKARANG</span>
+                <span wire:loading.remove>KIRIM UANG SEKARANG</span>
 
                 <span wire:loading class="flex items-center justify-center gap-2">
                     <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

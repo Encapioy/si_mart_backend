@@ -21,7 +21,7 @@ class Login extends Component
         // 1. Cek Admin
         if (Auth::guard('admin')->attempt($credentials)) {
             session()->regenerate();
-            return redirect()->route('admin.topup');
+            return redirect()->route('admin.dashboard');
         }
 
         // 2. Cek User Web

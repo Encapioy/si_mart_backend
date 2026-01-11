@@ -251,14 +251,38 @@ class ProductController extends Controller
     }
 
     // 5. HAPUS PRODUK
-    public function destroy($id)
+    public function destroy(Request $request, $id) // Tambahkan Request $request
     {
+        $user = $request->user();
+
+        // 1. Cari Produk
         $product = Product::find($id);
+
         if (!$product) {
             return response()->json(['message' => 'Produk tidak ditemukan'], 404);
         }
 
+        // 2. SECURITY CHECK (Wajib!)
+        // Pastikan produk ini milik Toko, dan Toko itu milik User yang login
+        // Asumsi: Relasi Product -> Store -> User
+        $store = $product->store;
+
+        // Cek: Apakah toko ada? Dan apakah pemilik toko = user yg login?
+        if (!$store || $store->user_id !== $user->id) {
+            return response()->json([
+                'message' => 'Anda tidak berhak menghapus produk ini'
+            ], 403); // 403 Forbidden (Dilarang)
+        }
+
+        // 3. Hapus Gambar Fisik (Biar server gak penuh sampah)
+        // Asumsi kolom gambar bernama 'image'
+        if ($product->image && Storage::exists('public/' . $product->image)) {
+            Storage::delete('public/' . $product->image);
+        }
+
+        // 4. Hapus Data Database
         $product->delete();
+
         return response()->json(['message' => 'Produk berhasil dihapus']);
     }
 

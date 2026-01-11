@@ -222,30 +222,38 @@ class StoreController extends Controller
     }
 
     // 8. PEMASUKAN TOKO
-    public function getIncomeReport(Request $request)
+    public function getIncomeReport(Request $request, $id)
     {
+
         $user = $request->user();
 
         // 1. Ambil Toko milik User yg login
-        // Asumsi relasi user->store one-to-one atau user pilih toko aktif
-        $store = Store::where('user_id', $user->id)->first();
+        $store = Store::where('id', $id)
+            ->where('user_id', $user->id)
+            ->first();
+
 
         if (!$store) {
             return response()->json(['message' => 'Anda tidak memiliki toko'], 404);
         }
 
+        $baseQuery = Transaction::where('store_id', $store->id)
+            ->where('status', 'paid');
+
         // 2. Query Data Hari Ini
-        $todayTransactions = Transaction::where('store_id', $store->id) // Pastikan kolom store_id sudah ada di migrationmu nanti
-            ->where('status', 'paid')
+        $todayTransactions = (clone $baseQuery)
             ->whereDate('created_at', Carbon::today())
             ->get();
 
         // 3. Query Data Bulan Ini
-        $monthTransactions = Transaction::where('store_id', $store->id)
-            ->where('status', 'paid')
+        $monthTransactions = (clone $baseQuery)
             ->whereMonth('created_at', Carbon::now()->month)
             ->whereYear('created_at', Carbon::now()->year)
             ->get();
+
+        // 4. Query Data Selamanya (ALL TIME) - BARU!
+        $allTimeIncome = (clone $baseQuery)->sum('total_bayar');
+        $allTimeCount = (clone $baseQuery)->count();
 
         return response()->json([
             'status' => 'success',
@@ -259,6 +267,10 @@ class StoreController extends Controller
                     'total_income' => $monthTransactions->sum('total_bayar'),
                     'transaction_count' => $monthTransactions->count(),
                     'details' => $monthTransactions
+                ],
+                'all_time' => [
+                    'total_income' => (int) $allTimeIncome,
+                    'transaction_count' => $allTimeCount,
                 ]
             ]
         ]);

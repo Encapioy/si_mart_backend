@@ -15,6 +15,8 @@ use App\Http\Controllers\Api\PreOrderController;
 use App\Http\Controllers\Api\MerchantController;
 use App\Http\Controllers\Api\MerchantDashboardController;
 use App\Http\Controllers\Api\Admin\MerchantVerificationController;
+use App\Http\Controllers\Api\UserDashboardController;
+use App\Http\Controllers\Api\HistoryController;
 
 /*
 |--------------------------------------------------------------------------
@@ -36,9 +38,6 @@ Route::post('/auth/send-otp', [AuthController::class, 'sendOtp']);       // Kiri
 Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']); // Reset Password
 Route::post('/auth/reset-pin', [AuthController::class, 'resetPin']);           // Reset PIN
 
-// [DEV ONLY] Route Testing
-Route::post('/admin/topup', [AdminController::class, 'webTopUp']);
-
 // =================================================================
 // GROUP 2: PROTECTED ROUTES (Butuh Token)
 // =================================================================
@@ -57,11 +56,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/users/change-pin', [UserController::class, 'changePin']);
     Route::post('/users/validate-pin', [UserController::class, 'validatePin']);
     Route::post('/users/lookup', [UserController::class, 'getUserPublicInfo']); // Cari user lain
-    Route::get('/history', [App\Http\Controllers\Api\HistoryController::class, 'index']); // History umum
+    Route::get('/history', [HistoryController::class, 'index']); // History umum
 
     // --- B. DASHBOARD & FAMILY ---
-    Route::get('/home', [App\Http\Controllers\Api\UserDashboardController::class, 'home']);
-    Route::get('/infos', [App\Http\Controllers\Api\UserDashboardController::class, 'infos']);
+    Route::get('/home', [UserDashboardController::class, 'home']);
+    Route::get('/infos', [UserDashboardController::class, 'infos']);
+    Route::get('/summary', [UserDashboardController::class, 'getUserSummary']);
     Route::post('/users/pair', [UserController::class, 'pairChild']);
     Route::get('/users/children', [UserController::class, 'getMyChildren']);
     Route::post('/users/sync-contacts', [UserController::class, 'syncContacts']);
@@ -75,13 +75,15 @@ Route::middleware('auth:sanctum')->group(function () {
     // --- D. STORE MANAGEMENT (Operasional Toko - Setelah Jadi Merchant) ---
     Route::post('/stores', [StoreController::class, 'store']); // Buka Toko Baru
     Route::get('/stores/my', [StoreController::class, 'myStores']); // List Toko Saya
-    Route::get('/stores/my/{id}/dashboard', [StoreController::class, 'myStoreDetail']); // Dashboard Toko
+    Route::get('/stores/{id}/dashboard', [StoreController::class, 'myStoreDetail']); // Dashboard Toko
     Route::post('/stores/{id}/update', [StoreController::class, 'update']); // Update toko
-    Route::get('/stores/income-report', [StoreController::class, 'getIncomeReport']); // Laporan pemasukan toko
+    Route::get('/stores/{id}/income-report', [StoreController::class, 'getIncomeReport']); // Laporan pemasukan toko
     Route::get('/stores/{id}/qr', [StoreController::class, 'generateQrCode']); // Generate Qr toko
 
     Route::get('/merchant/qr', [MerchantController::class, 'generateQrCode']); // QR Toko
+    Route::get('/merchant/income', [MerchantDashboardController::class, 'getIncomeStats']); // Total pendapatan
     Route::get('/merchant/dashboard/summary', [MerchantDashboardController::class, 'getDailySummary']); // Statistik Harian
+    Route::get('/merchant/dashboard/financial', [MerchantDashboardController::class, 'getFinancialDashboard']); // Rekapitulasi pendapatan
 
     // --- E. PUBLIC STORE VIEW (User lihat Kantin) ---
     Route::get('/stores', [StoreController::class, 'index']);

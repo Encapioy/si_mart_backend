@@ -22,6 +22,7 @@ class User extends Authenticatable
         'pin',
         'nfc_id',
         'saldo',
+        'merchant_balance',
         'parent_id',
         'nik',
         'alamat_ktp',

@@ -794,6 +794,7 @@ class TransactionController extends Controller
 
         $user = $request->user();
 
+
         // 2. CEK PIN
         if ($request->pin != $user->pin) {
             return response()->json(['message' => 'PIN Salah!'], 401);
@@ -805,8 +806,16 @@ class TransactionController extends Controller
         }
 
         // Cari Toko & Pemilik
-        $store = \App\Models\Store::find($request->store_id);
-        $merchantUser = \App\Models\User::find($store->user_id);
+        $store = Store::find($request->store_id);
+
+        if ($store->user_id == $user->id) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Anda tidak bisa melakukan pembayaran ke toko sendiri'
+            ], 403);
+        }
+
+        $merchantUser = User::find($store->user_id);
 
         if (!$merchantUser) {
             return response()->json(['message' => 'Merchant toko ini tidak valid'], 404);
@@ -820,13 +829,14 @@ class TransactionController extends Controller
             $user->save();
 
             // B. Tambah Saldo Merchant
-            $merchantUser->saldo += $request->amount;
+            $merchantUser->merchant_balance += $request->amount;
             $merchantUser->save();
 
             // C. Catat Struk (Tabel Transactions - Untuk Laporan Admin)
             $trx = \App\Models\Transaction::create([
                 'transaction_code' => 'TRX-' . time() . rand(100, 999),
                 'user_id' => $user->id,
+                'store_id' => $store->id,
                 'total_bayar' => $request->amount,
                 'status' => 'paid',
                 'type' => 'payment', // Tipe Payment
@@ -852,7 +862,7 @@ class TransactionController extends Controller
                 'user_id' => $merchantUser->id,
                 'type' => 'credit', // Hijau
                 'amount' => $request->amount,
-                'current_balance' => $merchantUser->saldo, // Saldo setelah ditambah
+                'current_balance' => $merchantUser->merchant_balance, // Saldo setelah ditambah
                 'category' => 'payment',
                 'description' => 'Pembayaran diterima dari ' . $user->nama_lengkap,
                 'related_user_id' => $user->id

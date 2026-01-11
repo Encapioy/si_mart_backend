@@ -229,28 +229,36 @@ class UserController extends Controller
     public function getUserPublicInfo(Request $request)
     {
         $request->validate([
-            'identity_code' => 'required|string', // Bisa Username, NFC, atau Member ID
+            'identity_code' => 'required|string',
         ]);
 
         $kode = $request->identity_code;
+        $currentUser = $request->user(); // Ambil user yang sedang login
 
         // Cari User
-        $user = User::where('member_id', $kode)
-            ->orWhere('username', $kode)
-            ->orWhere('nfc_id', $kode)
+        $user = User::where(function ($query) use ($kode) {
+            $query->where('member_id', $kode)
+                ->orWhere('username', $kode)
+                ->orWhere('email', $kode)
+                ->orWhere('no_hp', $kode)
+                ->orWhere('nfc_id', $kode);
+        })
+            ->where('id', '!=', $currentUser->id) // <--- PENTING: Jangan cari diri sendiri
             ->first();
 
         if (!$user) {
+
             return response()->json(['message' => 'Tujuan tidak ditemukan'], 404);
         }
 
         return response()->json([
             'message' => 'User ditemukan',
             'data' => [
+                'id' => $user->id, // Frontend butuh ID untuk proses transfer nanti
                 'nama_lengkap' => $user->nama_lengkap,
                 'username' => $user->username,
-                // URL Foto Profil (Pastikan accessor profile_photo_url sudah ada di Model User)
-                'profile_photo_url' => $user->profile_photo_url,
+                'member_id' => $user->member_id, // Opsional: tampilkan member ID untuk konfirmasi
+                'profile_photo_url' => $user->profile_photo_url, // Pastikan Accessor di Model User aman
             ]
         ]);
     }
@@ -331,7 +339,7 @@ class UserController extends Controller
             'contacts.*' => 'string',
         ]);
 
-        $inputContacts = $request->contacts;
+        $inputContacts = array_unique($request->contacts);
 
         // --- TAHAP NORMALISASI (Agar Pencarian Akurat) ---
         // Karena user mungkin simpan nomor formatnya beda-beda (+62, 62, 08, pakai spasi, strip -)
@@ -348,7 +356,9 @@ class UserController extends Controller
                 $clean = '0' . substr($clean, 2);
             }
 
-            $cleanContacts[] = $clean;
+            if (strlen($clean) >= 10) {
+                $cleanContacts[] = $clean;
+            }
         }
         // ------------------------------------------------
 

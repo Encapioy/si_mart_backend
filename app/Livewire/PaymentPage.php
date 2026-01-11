@@ -20,6 +20,13 @@ class PaymentPage extends Component
     public function mount($storeId)
     {
         $this->store = Store::findOrFail($storeId);
+
+        // Jika ID User yang login == ID Pemilik Toko
+        if ($this->store->user_id == Auth::id()) {
+            // Redirect balik ke dashboard dengan pesan error
+            session()->flash('error', 'Anda tidak bisa melakukan pembayaran ke toko sendiri!');
+            return redirect()->route('dashboard');
+        }
     }
 
     public function processPayment()
@@ -31,6 +38,11 @@ class PaymentPage extends Component
         ]);
 
         $user = Auth::user();
+
+        if ($this->store->user_id == $user->id) {
+            $this->addError('amount', 'Fraud detected: Tidak bisa bayar ke toko sendiri.');
+            return;
+        }
 
         // 2. Cek PIN (Plain Text)
         if ($this->pin != $user->pin) {
@@ -53,9 +65,8 @@ class PaymentPage extends Component
 
             // B. Tambah Saldo Merchant
             $merchant = User::find($this->store->user_id);
-            // Cek merchant ada atau tidak (jaga-jaga akun terhapus)
             if ($merchant) {
-                $merchant->saldo += $this->amount;
+                $merchant->merchant_balance += $this->amount;
                 $merchant->save();
             }
 
@@ -91,7 +102,7 @@ class PaymentPage extends Component
                     'user_id' => $merchant->id,
                     'type' => 'credit',
                     'amount' => $this->amount,
-                    'current_balance' => $merchant->saldo,
+                    'current_balance' => $merchant->merchant_balance,
                     'category' => 'payment',
                     'description' => 'Terima pembayaran dari ' . $user->nama_lengkap,
                     'related_user_id' => $user->id

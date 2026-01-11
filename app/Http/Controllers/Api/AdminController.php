@@ -62,7 +62,7 @@ class AdminController extends Controller
     public function manualTopUp(Request $request)
     {
         // Pastikan yang akses adalah Admin Keuangan
-        if ($request->user()->role !== 'keuangan') {
+        if (!in_array($request->user()->role, ['keuangan', 'developer', 'pusat'])) {
             return response()->json(['message' => 'Unauthorized. Hanya Admin Keuangan.'], 403);
         }
 

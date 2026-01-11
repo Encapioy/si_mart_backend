@@ -49,6 +49,7 @@ class BalanceController extends Controller
             'bank_name' => 'required_if:metode,transfer',
             'account_number' => 'required_if:metode,transfer',
             'account_name' => 'required_if:metode,transfer',
+            'source_type' => 'required|in:main,merchant',
         ]);
 
         if ($validator->fails())
@@ -56,16 +57,37 @@ class BalanceController extends Controller
 
         $user = $request->user();
 
+        // Cek pin
         if ($user->pin !== $request->pin)
             return response()->json(['message' => 'PIN Salah'], 401);
-        if ($user->saldo < $request->amount)
-            return response()->json(['message' => 'Saldo kurang'], 400);
 
-        // Potong Saldo Utama (Sesuai request dulu)
-        $user->saldo -= $request->amount;
-        $user->save();
 
-        // ... (setelah $user->saldo -= $request->amount; $user->save())
+        // Tentukan Saldo Mana yang Dipakai
+        $currentBalance = 0;
+
+        if ($request->source_type === 'merchant') {
+            $currentBalance = $user->merchant_balance;
+            $balanceField = 'merchant_balance'; // Nama kolom di DB
+        } else {
+            $currentBalance = $user->saldo;
+            $balanceField = 'saldo'; // Nama kolom di DB
+        }
+
+        // Cek Kecukupan Saldo
+        if ($currentBalance < $request->amount) {
+            return response()->json([
+                'message' => 'Saldo ' . ($request->source_type == 'merchant' ? 'Penghasilan' : 'Utama') . ' tidak mencukupi'
+            ], 400);
+        }
+
+        // Kurangi Saldo
+        // Kita pakai increment/decrement biar aman
+        if ($request->source_type === 'merchant') {
+            $user->decrement('merchant_balance', $request->amount);
+        } else {
+            $user->decrement('saldo', $request->amount);
+        }
+
         $this->recordMutation($user, $request->amount, 'debit', 'withdraw', 'Request Penarikan Dana');
 
         // Simpan ke Withdrawals

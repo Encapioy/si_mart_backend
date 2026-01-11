@@ -3,10 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\Request;
 use App\Models\Merchant;
-use Illuminate\Support\Facades\Storage;
-
 class MerchantController extends Controller
 {
     // 1. User Mengajukan Pembukaan Toko
@@ -130,4 +129,6 @@ class MerchantController extends Controller
             ]
         ]);
     }
+
+
 }

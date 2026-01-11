@@ -21,6 +21,6 @@ class AdminTopupHistory extends Component
 
         return view('livewire.admin-topup-history', [
             'history' => $history
-        ]);
+        ])->layout('components.layouts.sidebar');
     }
 }

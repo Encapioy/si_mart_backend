@@ -41,6 +41,6 @@ class AdminTransactionHistory extends Component
 
         return view('livewire.admin-transaction-history', [
             'transactions' => $transactions
-        ]);
+        ])->layout('components.layouts.sidebar');
     }
 }

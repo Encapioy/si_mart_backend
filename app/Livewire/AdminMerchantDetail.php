@@ -42,6 +42,7 @@ class AdminMerchantDetail extends Component
 
     public function render()
     {
-        return view('livewire.admin-merchant-detail');
+        return view('livewire.admin-merchant-detail')
+            ->layout('components.layouts.sidebar', ['title' => 'Detail Merchant']);
     }
 }

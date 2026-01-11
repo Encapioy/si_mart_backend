@@ -176,6 +176,6 @@ class AdminTopup extends Component
 
     public function render()
     {
-        return view('livewire.admin-topup');
+        return view('livewire.admin-topup')->layout('components.layouts.sidebar');
     }
 }

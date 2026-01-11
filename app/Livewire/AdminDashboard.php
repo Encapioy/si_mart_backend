@@ -30,6 +30,6 @@ class AdminDashboard extends Component
 
             // BONUS: Ambil 5 Transaksi Terakhir untuk tabel mini
             'recent_transactions' => Transaction::latest()->take(5)->get()
-        ]);
+        ])->layout('components.layouts.sidebar');
     }
 }

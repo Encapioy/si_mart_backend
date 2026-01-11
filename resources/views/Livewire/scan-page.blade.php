@@ -1,103 +1,108 @@
-<div class="h-screen bg-black relative flex flex-col justify-center">
-    <a href="{{ route('dashboard') }}"
-        class="absolute top-6 left-6 z-50 text-white bg-white/20 p-2 rounded-full backdrop-blur hover:bg-white/30 transition">
+<div class="relative flex flex-col justify-center h-screen bg-black">
+
+    <a href="{{ route('dashboard') }}" wire:navigate
+        class="absolute z-50 p-2 transition rounded-full top-6 left-6 text-white bg-white/20 backdrop-blur hover:bg-white/30">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
         </svg>
     </a>
 
-    <div id="reader" class="w-full h-full object-cover"></div>
+    <div wire:ignore class="w-full h-full">
+        <div id="reader" class="w-full h-full"></div>
+    </div>
 
-    <div class="absolute bottom-20 w-full text-center pointer-events-none">
-        <span class="bg-black/50 text-white px-4 py-2 rounded-full text-sm backdrop-blur border border-white/20">
-            Arahkan ke QR Toko atau Teman
+    <div class="absolute w-full text-center pointer-events-none bottom-24">
+        <span class="px-4 py-2 text-sm text-white border rounded-full bg-black/50 backdrop-blur border-white/20">
+            Arahkan ke QR Toko atau Member Card
         </span>
     </div>
 
+    @assets
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    @endassets
+
+    @script
     <script>
-        document.addEventListener('livewire:initialized', () => {
+        let html5Qrcode;
 
-            const onScanSuccess = (decodedText, decodedResult) => {
-                console.log("QR Terbaca:", decodedText);
+        // Fungsi inisialisasi kamera
+        const startScanner = () => {
+            html5Qrcode = new Html5Qrcode("reader");
 
-                // --- LOGIKA PEMILAHAN QR ---
-
-                // 1. CEK QR TOKO (Format: SIPAY:STORE:...)
-                if (decodedText.startsWith('SIPAY:STORE:')) {
-                    // Hentikan kamera
-                    html5QrcodeScanner.clear();
-
-                    // Ambil ID Toko (Format: SIPAY:STORE:ID:NAMA)
-                    let parts = decodedText.split(':');
-                    let storeId = parts[2];
-
-                    // Redirect ke Halaman Bayar Toko
-                    // Pastikan route ini ada di web.php: Route::get('/pay/{storeId}', ...)
-                    window.location.href = "/pay/" + storeId;
-                }
-
-                // 2. CEK QR USER (Format: Angka Murni 12 Digit, misal: 202612345678)
-                // Logika: Apakah isinya hanya angka? DAN panjangnya >= 10?
-                else if (/^\d+$/.test(decodedText) && decodedText.length >= 10) {
-                    // Hentikan kamera
-                    html5QrcodeScanner.clear();
-
-                    let memberId = decodedText;
-
-                    // Redirect ke Halaman Transfer User
-                    // Pastikan route ini ada di web.php: Route::get('/transfer/{memberId}', ...)
-                    window.location.href = "/transfer/" + memberId;
-                }
-
-                // 3. QR TIDAK DIKENALI
-                else {
-                    // Alert sementara untuk debugging, nanti bisa diganti SweetAlert
-                    alert("QR Code tidak valid!\n\nIsi: " + decodedText);
-                }
-            };
-
-            const onScanFailure = (error) => {
-                // Biarkan kosong biar console bersih
-            };
-
-            // --- KONFIGURASI SCANNER ---
-            let config = {
+            const config = {
                 fps: 10,
                 qrbox: { width: 250, height: 250 },
-                videoConstraints: {
-                    facingMode: "environment" // Kamera Belakang
-                }
+                aspectRatio: 1.0
             };
 
-            const html5QrcodeScanner = new Html5QrcodeScanner("reader", config, false);
-            html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+            // Mulai Scanner (Pakai Environment/Kamera Belakang)
+            html5Qrcode.start(
+                { facingMode: "environment" },
+                config,
+                (decodedText, decodedResult) => {
+                    // --- SUKSES SCAN ---
+                    console.log("QR Terbaca:", decodedText);
+
+                    // Matikan kamera agar tidak scan ganda
+                    html5Qrcode.stop().then(() => {
+                        handleScanResult(decodedText);
+                    });
+                },
+                (errorMessage) => {
+                    // Scan gagal (biasa terjadi saat mencari QR), abaikan saja
+                }
+            ).catch(err => {
+                console.error("Gagal membuka kamera:", err);
+                alert("Izin kamera diperlukan untuk fitur ini.");
+            });
+        };
+
+        // Logika Pemilahan QR
+        const handleScanResult = (text) => {
+            // 1. CEK QR TOKO (Format: SIPAY:STORE:...)
+            if (text.startsWith('SIPAY:STORE:')) {
+                let parts = text.split(':');
+                let storeId = parts[2]; // Ambil ID
+
+                // Gunakan Livewire.navigate biar smooth (SPA)
+                Livewire.navigate('/pay/' + storeId);
+            }
+            // 2. CEK QR USER (Angka 10+ digit)
+            else if (/^\d+$/.test(text) && text.length >= 10) {
+                Livewire.navigate('/transfer/' + text);
+            }
+            // 3. QR TIDAK VALID
+            else {
+                alert("QR Code tidak dikenali!");
+                // Nyalakan kamera lagi jika mau scan ulang
+                window.location.reload();
+            }
+        };
+
+        // Jalankan saat komponen dimuat
+        startScanner();
+
+        // Bersihkan saat user meninggalkan halaman (PENTING di SPA)
+        document.addEventListener('livewire:navigating', () => {
+            if (html5Qrcode) {
+                html5Qrcode.stop().catch(err => console.log('Stop failed', err));
+            }
         });
     </script>
+    @endscript
 
     <style>
-        /* Styling agar kamera full screen dan rapi */
-        #reader {
-            border: none !important;
-            width: 100%;
-            height: 100%;
-        }
-
-        #reader__scan_region {
-            min-height: 100vh;
-        }
-
-        video {
+        /* Paksa video memenuhi layar */
+        #reader video {
             object-fit: cover;
+            width: 100% !important;
             height: 100vh !important;
-            width: 100vw !important;
-            transform: scaleX(-1);
-            /* Opsional: Mirroring kalau perlu */
+            border-radius: 0 !important;
         }
 
-        /* Sembunyikan tombol bawaan library yang mengganggu */
-        #reader__dashboard_section_csr span,
-        #reader__dashboard_section_swaplink {
-            display: none !important;
+        /* Hilangkan mirroring untuk kamera belakang agar tulisan QR terbaca */
+        video {
+            transform: none !important;
         }
     </style>
 </div>

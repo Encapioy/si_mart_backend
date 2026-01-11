@@ -7,6 +7,8 @@ use App\Http\Controllers\Api\AdminController;
 // Livewire Components
 use App\Livewire\Login;
 use App\Livewire\Dashboard;
+use App\Livewire\HistoryPage;
+use App\Livewire\ProfilePage;
 use App\Livewire\ScanPage;
 use App\Livewire\PaymentPage;
 use App\Livewire\TransferPage;
@@ -25,11 +27,12 @@ Route::get('/', function () {
 // 2. Login Page
 Route::get('/register', Register::class)->name('register');
 Route::get('/login', Login::class)->name('login');
-Route::get('/logout', [AuthController::class, 'logoutWeb'])->name('logout');
 
 // 3. User Web Routes
 Route::middleware(['auth:web'])->group(function () {
     Route::get('/dashboard', Dashboard::class)->name('dashboard');
+    Route::get('/history', HistoryPage::class)->name('history');
+    Route::get('/profile', ProfilePage::class)->name('profile');
     Route::get('/scan', ScanPage::class)->name('scan');
     Route::get('/transfer/{memberId}', TransferPage::class)->name('transfer.user');
     Route::get('/pay/{storeId}', PaymentPage::class)->name('pay');

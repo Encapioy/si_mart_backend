@@ -139,11 +139,11 @@ class MerchantDashboardController extends Controller
         $endDate = null;
 
         if ($period === 'today') {
-            $startDate = \Carbon\Carbon::today(); // 00:00 hari ini
-            $endDate = \Carbon\Carbon::now()->endOfDay();
+            $startDate = Carbon::today(); // 00:00 hari ini
+            $endDate = Carbon::now()->endOfDay();
         } elseif ($period === 'month') {
-            $startDate = \Carbon\Carbon::now()->startOfMonth();
-            $endDate = \Carbon\Carbon::now()->endOfMonth();
+            $startDate = Carbon::now()->startOfMonth();
+            $endDate = Carbon::now()->endOfMonth();
         }
         // Jika 'all', startDate tetap null (artinya tidak difilter waktu)
 
@@ -174,7 +174,7 @@ class MerchantDashboardController extends Controller
         // tinggal copy logic if($startDate) ke bawah.
         // Di sini saya buat logic DEFAULT (Absolut 10 Terbaru tanpa filter waktu) biar wajar.
 
-        $recentTransactions = \App\Models\Transaction::whereIn('store_id', $storeIds)
+        $recentTransactions = Transaction::whereIn('store_id', $storeIds)
             ->where('status', 'paid')
             ->with('store:id,nama_toko') // Kita butuh nama tokonya
             ->latest() // Urut dari paling baru

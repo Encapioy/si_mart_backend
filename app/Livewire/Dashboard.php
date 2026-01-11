@@ -17,6 +17,6 @@ class Dashboard extends Component
         return view('livewire.dashboard', [
             'memberId' => $memberId,
             'user' => $user
-        ]);
+        ])->layout('components.layouts.userbar');
     }
 }

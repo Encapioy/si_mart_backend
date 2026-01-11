@@ -833,7 +833,7 @@ class TransactionController extends Controller
             $merchantUser->save();
 
             // C. Catat Struk (Tabel Transactions - Untuk Laporan Admin)
-            $trx = \App\Models\Transaction::create([
+            $trx = Transaction::create([
                 'transaction_code' => 'TRX-' . time() . rand(100, 999),
                 'user_id' => $user->id,
                 'store_id' => $store->id,

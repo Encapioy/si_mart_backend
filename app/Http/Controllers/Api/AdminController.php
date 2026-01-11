@@ -99,7 +99,7 @@ class AdminController extends Controller
             $targetUser->save();
 
             // B. Masukkan ke Tabel 'top_ups' (Sesuai request kamu)
-            \App\Models\TopUp::create([
+            TopUp::create([
                 'user_id' => $targetUser->id,
                 'amount' => $request->amount,
                 'status' => 'approved', // Langsung sukses karena tunai
@@ -167,7 +167,7 @@ class AdminController extends Controller
         }
 
         // 4. Eksekusi
-        return \Illuminate\Support\Facades\DB::transaction(function () use ($user, $cashier, $request) {
+        return DB::transaction(function () use ($user, $cashier, $request) {
             $user->saldo += $request->amount;
             $user->save();
 

@@ -196,7 +196,7 @@ class BalanceController extends Controller
     {
         $myId = $request->user()->id;
 
-        $recentIds = \App\Models\BalanceMutation::where('user_id', $myId)
+        $recentIds = BalanceMutation::where('user_id', $myId)
             ->whereIn('category', ['transfer_out', 'transfer_in']) // Ini akan cocok dengan kode transfer di atas
             ->whereNotNull('related_user_id')
             ->latest()

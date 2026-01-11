@@ -13,6 +13,7 @@ class Transaction extends Model
         'transaction_code',
         'status',
         'user_id',
+        'store_id',
         'total_bayar',
         'tanggal_transaksi',
         'expired_at'

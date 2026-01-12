@@ -130,47 +130,65 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script>
-        document.addEventListener('livewire:initialized', () => {
+    @script
+<script>
+    document.addEventListener('livewire:initialized', () => {
 
-            // 1. Dengar Event 'show-confirmation-modal' dari PHP
-            Livewire.on('show-confirmation-modal', (data) => {
-                // Data dikirim dalam array, ambil index 0
-                const info = data[0];
+        // 1. Dengar Event Konfirmasi (Menggunakan Destructuring Objek)
+        Livewire.on('show-confirmation-modal', (event) => {
 
-                Swal.fire({
-                    title: 'Konfirmasi Top Up',
-                    html: `
-                        <div class="text-left text-sm">
-                            <p class="mb-1">Tujuan: <b>${info.username}</b></p>
-                            <p class="mb-1">Nominal: <b class="text-emerald-600">Rp ${parseInt(info.amount).toLocaleString('id-ID')}</b></p>
-                            <p>Kasir: <b>${info.cashier_name}</b></p>
-                        </div>
-                    `,
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonColor: '#0f172a',
-                    cancelButtonColor: '#d33',
-                    confirmButtonText: 'YA, KIRIM SEKARANG',
-                    cancelButtonText: 'Batal',
-                    showLoaderOnConfirm: true,
-                    preConfirm: () => {
-                        // Panggil function PHP 'processTopUp'
-                        return @this.processTopUp();
-                    }
-                });
+            // Di Livewire 3, 'event' adalah objek berisi properti yang dikirim dari PHP
+            const username = event.username;
+            const amount = event.amount;
+            const cashier_name = event.cashier_name;
+
+            Swal.fire({
+                title: 'Konfirmasi Top Up',
+                html: `
+                    <div class="text-left text-sm border-t border-b py-3 my-2">
+                        <p class="mb-1">Tujuan: <b>${username}</b></p>
+                        <p class="mb-1">Nominal: <b class="text-emerald-600">Rp ${new Intl.NumberFormat('id-ID').format(amount)}</b></p>
+                        <p>Kasir: <b>${cashier_name}</b></p>
+                    </div>
+                    <p class="text-[10px] text-gray-400">Pastikan dana tunai telah diterima.</p>
+                `,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#0f172a',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'YA, PROSES SEKARANG',
+                cancelButtonText: 'Batal',
+                reverseButtons: true,
+                allowOutsideClick: () => !Swal.isLoading()
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Panggil method PHP menggunakan helper $wire
+                    $wire.processTopUp();
+                }
             });
-
-            // 2. Dengar Event Sukses
-            Livewire.on('show-success', (data) => {
-                Swal.fire('Berhasil!', data.message, 'success');
-            });
-
-            // 3. Dengar Event Error
-            Livewire.on('show-error', (data) => {
-                Swal.fire('Gagal!', data.message, 'error');
-            });
-
         });
-    </script>
+
+        // 2. Dengar Event Sukses
+        Livewire.on('show-success', (event) => {
+            Swal.fire({
+                title: 'Berhasil!',
+                text: event.message,
+                icon: 'success',
+                confirmButtonColor: '#0f172a'
+            });
+        });
+
+        // 3. Dengar Event Error
+        Livewire.on('show-error', (event) => {
+            Swal.fire({
+                title: 'Terjadi Kesalahan',
+                text: event.message,
+                icon: 'error',
+                confirmButtonColor: '#0f172a'
+            });
+        });
+
+    });
+</script>
+@endscript
 </div>

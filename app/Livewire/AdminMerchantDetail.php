@@ -28,14 +28,14 @@ class AdminMerchantDetail extends Component
         // 3. Calculate Stats
         $this->incomeToday = (clone$trxQuery)
             ->whereDate('created_at', Carbon::today())
-            ->sum('amount');
+            ->sum('total_bayar');
 
         $this->incomeMonth = (clone$trxQuery)
             ->whereMonth('created_at', Carbon::now()->month)
             ->whereYear('created_at', Carbon::now()->year)
-            ->sum('amount');
+            ->sum('total_bayar');
 
-        $this->incomeTotal = (clone$trxQuery)->sum('amount');
+        $this->incomeTotal = (clone$trxQuery)->sum('total_bayar');
     }
 
     #[Layout('components.layouts.admin')]

@@ -111,11 +111,12 @@ class AdminTopup extends Component
         }
 
         // 4. Kirim Event ke Browser
-        $this->dispatch('show-confirmation-modal', [
-            'username' => $this->selectedUser->username,
-            'amount' => $this->amount,
-            'cashier_name' => $kasir->nama_lengkap
-        ]);
+        $this->dispatch(
+            'show-confirmation-modal',
+            username: $this->selectedUser->username,
+            amount: $this->amount,
+            cashier_name: $kasir->nama_lengkap
+        );
     }
 
     // --- FITUR 4: EKSEKUSI TRANSAKSI (Tahap 2) ---
@@ -146,8 +147,6 @@ class AdminTopup extends Component
                 'admin_id' => $kasir->id,
                 'bukti_transfer' => 'MANUAL_CASH',
             ]);
-
-            // C. Simpan Transaction (Struk)
 
             // D. Simpan Mutasi (Buku Tabungan)
             BalanceMutation::create([

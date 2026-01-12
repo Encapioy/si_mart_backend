@@ -46,7 +46,6 @@ class AdminMerchantDetail extends Component
 
         $transactions = Transaction::with('user') // Load pembelinya siapa
             ->where('store_id', $this->store->id)
-            ->where('status', 'paid')
             ->latest() // Urutkan dari yang terbaru
             ->paginate(10); // 10 per halaman
 

@@ -74,7 +74,7 @@
                                 @if($trx->store)
                                     <div class="flex flex-col">
                                         <span class="font-bold text-slate-700">{{ $trx->store->nama_toko }}</span>
-                                        <span class="text-xs text-slate-400">Owner: {{ $trx->store->user->nama_lengkap ?? '-' }}</span>
+                                        <span class="text-xs text-slate-400">Owner: {{ $trx->store->owner->nama_lengkap ?? '-' }}</span>
                                     </div>
                                 @else
                                     <span class="text-sm text-slate-600 italic">

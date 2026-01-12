@@ -50,10 +50,10 @@
                                 <div class="flex items-center gap-2">
                                     <div
                                         class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-600">
-                                        {{ substr($store->user->nama_lengkap ?? 'X', 0, 1) }}
+                                        {{ substr($store->owner->nama_lengkap ?? 'X', 0, 1) }}
                                     </div>
                                     <span
-                                        class="font-medium text-slate-700">{{ $store->user->nama_lengkap ?? 'User Terhapus' }}</span>
+                                        class="font-medium text-slate-700">{{ $store->owner->nama_lengkap ?? 'Tidak Diketahui' }}</span>
                                 </div>
                             </td>
 

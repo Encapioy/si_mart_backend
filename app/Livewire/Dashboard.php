@@ -4,9 +4,11 @@ namespace App\Livewire;
 
 use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\Layout;
 
 class Dashboard extends Component
 {
+    #[Layout('components.layouts.userbar')]
     public function render()
     {
         $user = Auth::user();
@@ -17,6 +19,6 @@ class Dashboard extends Component
         return view('livewire.dashboard', [
             'memberId' => $memberId,
             'user' => $user
-        ])->layout('components.layouts.userbar');
+        ]);
     }
 }

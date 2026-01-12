@@ -5,6 +5,7 @@ namespace App\Livewire;
 use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\Transaction;
+use Livewire\Attributes\Layout;
 
 class AdminTransactionHistory extends Component
 {
@@ -18,9 +19,10 @@ class AdminTransactionHistory extends Component
         $this->resetPage();
     }
 
+    #[Layout('components.layouts.admin')]
     public function render()
     {
-        $transactions = Transaction::with(['user', 'store.user'])
+        $transactions = Transaction::with(['user', 'store.owner'])
             ->whereIn('type', ['payment', 'transfer'])
             ->when($this->search, function ($query) {
                 // Logic Pencarian Pintar
@@ -41,6 +43,6 @@ class AdminTransactionHistory extends Component
 
         return view('livewire.admin-transaction-history', [
             'transactions' => $transactions
-        ])->layout('components.layouts.sidebar');
+        ]);
     }
 }

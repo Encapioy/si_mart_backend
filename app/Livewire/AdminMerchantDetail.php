@@ -4,8 +4,10 @@ namespace App\Livewire;
 
 use Livewire\Component;
 use App\Models\Store;
-use App\Models\BalanceMutation; // We use this for accurate income calculation
+use App\Models\BalanceMutation;
+use App\Models\Transaction;
 use Carbon\Carbon;
+use Livewire\Attributes\Layout;
 
 class AdminMerchantDetail extends Component
 {
@@ -17,32 +19,28 @@ class AdminMerchantDetail extends Component
     public function mount($storeId)
     {
         // 1. Get Store Data with Relations
-        $this->store = Store::with(['user', 'products'])->findOrFail($storeId);
-
-        // Merchant's User ID (The owner of the wallet)
-        $merchantUserId = $this->store->user_id;
+        $this->store = Store::with(['owner', 'products'])->findOrFail($storeId);
 
         // 2. Base Query for Income (Mutations where money comes IN from payments)
-        $incomeQuery = BalanceMutation::where('user_id', $merchantUserId)
-            ->where('type', 'credit')       // Money IN
-            ->where('category', 'payment'); // From Store Payments
+        $trxQuery = Transaction::where('store_id', $this->store->id)
+            ->where('status', 'paid');
 
         // 3. Calculate Stats
-        $this->incomeToday = (clone $incomeQuery)
+        $this->incomeToday = (clone$trxQuery)
             ->whereDate('created_at', Carbon::today())
             ->sum('amount');
 
-        $this->incomeMonth = (clone $incomeQuery)
+        $this->incomeMonth = (clone$trxQuery)
             ->whereMonth('created_at', Carbon::now()->month)
             ->whereYear('created_at', Carbon::now()->year)
             ->sum('amount');
 
-        $this->incomeTotal = (clone $incomeQuery)->sum('amount');
+        $this->incomeTotal = (clone$trxQuery)->sum('amount');
     }
 
+    #[Layout('components.layouts.admin')]
     public function render()
     {
-        return view('livewire.admin-merchant-detail')
-            ->layout('components.layouts.sidebar', ['title' => 'Detail Merchant']);
+        return view('livewire.admin-merchant-detail');
     }
 }

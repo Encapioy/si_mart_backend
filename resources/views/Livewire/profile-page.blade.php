@@ -105,20 +105,61 @@
         </div>
 
         <div class="pt-4">
-            <button wire:click="logout" wire:confirm="Apakah Anda yakin ingin keluar?"
-                class="group w-full bg-white border border-red-100 text-red-600 font-semibold py-4 rounded-2xl shadow-sm hover:bg-red-50 hover:border-red-200 transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98]">
-                <div class="p-1 rounded-full bg-red-100 group-hover:bg-red-200 transition">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                    </svg>
-                </div>
-                Keluar Aplikasi
-            </button>
 
-            <div class="text-center mt-6">
-                 <p class="text-[10px] text-gray-400 font-medium">SI PAY v1.0.0 &copy; 2026</p>
-            </div>
+    <form id="logout-form" action="{{ route('logout') }}" method="POST" class="hidden">
+        @csrf
+    </form>
+
+    <button onclick="confirmLogout()"
+        class="group w-full bg-white border border-red-100 text-red-600 font-semibold py-4 rounded-2xl shadow-sm hover:bg-red-50 hover:border-red-200 transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98]">
+        <div class="p-1 rounded-full bg-red-100 group-hover:bg-red-200 transition">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
         </div>
+        Keluar Aplikasi
+    </button>
+
+    <div class="text-center mt-6">
+            <p class="text-[10px] text-gray-400 font-medium">SI PAY v1.0.0 &copy; 2026</p>
+    </div>
+</div>
 
     </div>
+    <script>
+    function confirmLogout() {
+        Swal.fire({
+            title: 'Ingin keluar?',
+            text: "Sesi Anda akan diakhiri sekarang.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33', // Warna Merah
+            cancelButtonColor: '#3085d6', // Warna Biru
+            confirmButtonText: 'Ya, Keluar!',
+            cancelButtonText: 'Batal',
+            reverseButtons: true, // Tombol Batal di kiri, Hapus di kanan
+            background: '#fff',
+            customClass: {
+                popup: 'rounded-2xl', // Agar sudut alert membulat
+                confirmButton: 'rounded-xl px-6 py-3 font-bold',
+                cancelButton: 'rounded-xl px-6 py-3 font-bold'
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Tampilkan loading biar keren
+                Swal.fire({
+                    title: 'Keluar...',
+                    text: 'Sedang memproses logout',
+                    timer: 2000,
+                    showConfirmButton: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                        // Submit Form Tersembunyi
+                        document.getElementById('logout-form').submit();
+                    }
+                });
+            }
+        })
+    }
+</script>
 </div>

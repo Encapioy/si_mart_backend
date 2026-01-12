@@ -6,11 +6,13 @@ use Livewire\Component;
 use Livewire\WithPagination; // Wajib import ini
 use App\Models\BalanceMutation;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\Layout;
 
 class HistoryPage extends Component
 {
     use WithPagination; // Aktifkan fitur pagination
 
+    #[Layout('components.layouts.userbar')]
     public function render()
     {
         $user = Auth::user();
@@ -22,6 +24,6 @@ class HistoryPage extends Component
 
         return view('livewire.history-page', [
             'mutations' => $mutations
-        ])->layout('components.layouts.userbar');
+        ]);
     }
 }

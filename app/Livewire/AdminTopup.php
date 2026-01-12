@@ -9,6 +9,7 @@ use App\Models\TopUp;
 use App\Models\BalanceMutation;
 use App\Models\Transaction;
 use Illuminate\Support\Facades\DB;
+use Livewire\Attributes\Layout;
 
 class AdminTopup extends Component
 {
@@ -174,8 +175,9 @@ class AdminTopup extends Component
         }
     }
 
+    #[Layout('components.layouts.admin')]
     public function render()
     {
-        return view('livewire.admin-topup')->layout('components.layouts.sidebar');
+        return view('livewire.admin-topup');
     }
 }

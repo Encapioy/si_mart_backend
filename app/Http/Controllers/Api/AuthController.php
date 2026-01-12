@@ -238,12 +238,34 @@ class AuthController extends Controller
     // 4. LOGOUT
     public function logout(Request $request)
     {
-        // Hapus token yang sedang dipakai saat ini
-        $request->user()->currentAccessToken()->delete();
+        // A. LOGIC UNTUK API / MOBILE APP (Sanctum)
+        if ($request->wantsJson() || $request->is('api/*')) {
 
-        return response()->json([
-            'message' => 'Logout berhasil'
-        ]);
+            // Pastikan user memang punya token (cegah error)
+            if ($request->user()) {
+                // Hapus token yang sedang dipakai
+                $request->user()->currentAccessToken()->delete();
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Logout berhasil'
+            ]);
+        }
+
+        // B. LOGIC UNTUK WEB ADMIN / BROWSER (Session)
+
+        // 1. Logout dari guard web
+        Auth::guard('web')->logout();
+
+        // 2. Hapus sesi browser (PENTING)
+        $request->session()->invalidate();
+
+        // 3. Regenerate Token CSRF (Untuk keamanan)
+        $request->session()->regenerateToken();
+
+        // 4. Lempar ke halaman login
+        return redirect()->route('login');
     }
 
     // 4. CEK PROFIL SAYA

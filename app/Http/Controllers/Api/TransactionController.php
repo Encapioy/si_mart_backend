@@ -872,12 +872,18 @@ class TransactionController extends Controller
 
             \DB::commit();
 
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Pembayaran berhasil ke ' . $store->nama_toko,
-                'data' => $trx,
-                'sisa_saldo' => $user->saldo
-            ]);
+            // Cek apakah yang minta data adalah API/Mobile App (Ingin JSON)?
+            if ($request->wantsJson() || $request->is('api/*')) {
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'Pembayaran berhasil ke ' . $store->nama_toko,
+                    'data' => $trx,
+                    'sisa_saldo' => $user->saldo
+                ]);
+            }
+
+            // Jika bukan API (berarti Web Browser/Livewire), maka REDIRECT ke halaman struk
+            return redirect()->route('payment.success', ['code' => $trx->transaction_code]);
 
         } catch (\Exception $e) {
             \DB::rollBack();

@@ -7,9 +7,11 @@ use App\Models\User;
 use App\Models\Store;
 use App\Models\Transaction;
 use App\Models\TopUp; // Jangan lupa import ini
+use Livewire\Attributes\Layout;
 
 class AdminDashboard extends Component
 {
+    #[Layout('components.layouts.admin')]
     public function render()
     {
         return view('livewire.admin-dashboard', [
@@ -30,6 +32,6 @@ class AdminDashboard extends Component
 
             // BONUS: Ambil 5 Transaksi Terakhir untuk tabel mini
             'recent_transactions' => Transaction::latest()->take(5)->get()
-        ])->layout('components.layouts.sidebar');
+        ]);
     }
 }

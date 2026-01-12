@@ -23,7 +23,7 @@ class AdminTransactionHistory extends Component
     public function render()
     {
         $transactions = Transaction::with(['user', 'store.owner'])
-            ->whereIn('type', ['payment', 'transfer'])
+            ->whereIn('type', ['payment', 'transfer_in', 'transfer_out'])
             ->when($this->search, function ($query) {
                 // Logic Pencarian Pintar
                 $query->where(function ($q) {

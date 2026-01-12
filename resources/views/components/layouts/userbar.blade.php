@@ -24,7 +24,7 @@
     </style>
 </head>
 
-<body class="bg-gray-50 text-slate-800 antialiased font-sans selection:bg-blue-100 selection:text-blue-600">
+<body wire:poll.10s class="bg-gray-50 text-slate-800 antialiased font-sans selection:bg-blue-100 selection:text-blue-600">
 
     <main class="min-h-screen pb-24 relative z-0">
         {{ $slot }}

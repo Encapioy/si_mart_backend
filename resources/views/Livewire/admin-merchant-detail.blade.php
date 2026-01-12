@@ -4,7 +4,7 @@
         <div class="absolute inset-0 opacity-20 bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>
         <div class="absolute inset-0 bg-gradient-to-r from-blue-900 to-slate-900 opacity-90"></div>
 
-        <a href="{{ route('admin.merchants') }}" class="absolute top-6 left-6 text-white/80 hover:text-white flex items-center gap-2 transition">
+        <a href="{{ route('admin.merchants-list') }}" class="absolute top-6 left-6 text-white/80 hover:text-white flex items-center gap-2 transition">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
             Kembali
         </a>

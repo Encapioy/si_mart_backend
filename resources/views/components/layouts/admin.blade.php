@@ -34,7 +34,7 @@
     </style>
 </head>
 
-<body class="bg-slate-50 text-slate-800 antialiased overflow-hidden" x-data="{ sidebarOpen: false }">
+<body wire:poll.10s class="bg-slate-50 text-slate-800 antialiased overflow-hidden" x-data="{ sidebarOpen: false }">
 
     <div class="flex h-screen w-full">
 

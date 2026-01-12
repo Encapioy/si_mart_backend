@@ -13,7 +13,7 @@
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
-<body class="bg-gray-50 text-slate-800 antialiased">
+<body wire:poll.10s class="bg-gray-50 text-slate-800 antialiased">
     {{ $slot }}
 </body>
 </html>

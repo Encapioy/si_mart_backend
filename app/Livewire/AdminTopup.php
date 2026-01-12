@@ -79,11 +79,11 @@ class AdminTopup extends Component
         // 1. Validasi Input Dasar
         $this->validate([
             'search' => 'required',
-            'amount' => 'required|numeric|min:100000',
+            'amount' => 'required|numeric|min:1000',
             'cashier_id' => 'required',
             'cashier_pin' => 'required|digits:6',
         ], [
-            'amount.min' => 'Minimal Top Up Rp 100.000',
+            'amount.min' => 'Minimal Top Up Rp 1000',
             'cashier_pin.digits' => 'PIN harus 6 digit'
         ]);
 

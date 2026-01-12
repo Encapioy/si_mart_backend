@@ -1,5 +1,5 @@
 <div class="min-h-screen bg-slate-50 text-slate-800 flex flex-col p-6">
-    
+
     <div class="bg-white p-4 rounded-xl flex items-center space-x-3 mb-8 border border-slate-200 shadow-sm">
         <div class="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold text-lg">
             {{ substr($targetUser->nama_lengkap ?? 'U', 0, 1) }}
@@ -45,8 +45,8 @@
 
             <div class="relative">
                 <input wire:model="pin" type="password" inputmode="numeric" maxlength="6"
-                    class="w-full bg-white border border-slate-200 rounded-xl px-4 py-4 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition text-center tracking-[0.5em] font-bold placeholder-slate-300 shadow-sm"
-                    placeholder="••••••">
+                    class="w-full bg-white border border-slate-200 rounded-xl px-4 py-4 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition text-center font-bold placeholder-slate-300 shadow-sm"
+                    placeholder="MASUKAN PIN">
                 @error('pin')
                     <span class="text-red-500 text-xs text-center block mt-2 font-medium">{{ $message }}</span>
                 @enderror
@@ -54,11 +54,12 @@
 
             <button type="submit"
                 wire:loading.attr="disabled"
+                wire:target="processTransfer"
                 class="w-full bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-500/20 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed">
 
-                <span wire:loading.remove>KIRIM UANG SEKARANG</span>
+                <span wire:loading.remove wire:target="processTransfer">KIRIM UANG SEKARANG</span>
 
-                <span wire:loading class="flex items-center justify-center gap-2">
+                <span wire:loading wire:target="processTransfer" class="flex items-center justify-center gap-2">
                     <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -67,7 +68,8 @@
                 </span>
             </button>
 
-            <a href="{{ route('dashboard') }}" class="block text-center text-slate-400 text-xs font-medium hover:text-slate-600 transition py-2">
+            <a href="{{ route('dashboard') }}"
+                class="block w-full text-center py-3.5 rounded-xl bg-red-50 text-red-600 font-bold text-sm tracking-wide hover:bg-red-100 hover:text-red-700 transition-all duration-200 active:scale-[0.98]">
                 BATALKAN TRANSAKSI
             </a>
         </div>

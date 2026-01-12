@@ -182,7 +182,7 @@
                                         <span class="text-sm text-slate-600">{{ $trx->keterangan ?? 'Pembelian Produk' }}</span>
                                     </td>
                                     <td class="px-6 py-4 text-right">
-                                        <span class="text-sm font-black text-slate-800 group-hover:text-blue-600 transition">Rp {{ number_format($trx->amount ?? $trx->total_harga, 0, ',', '.') }}</span>
+                                        <span class="text-sm font-black text-slate-800 group-hover:text-blue-600 transition">Rp {{ number_format($trx->amount ?? $trx->total_bayar, 0, ',', '.') }}</span>
                                     </td>
                                     <td class="px-6 py-4 text-center">
                                         {{-- Sesuaikan status dengan data kamu --}}

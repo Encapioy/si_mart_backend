@@ -69,7 +69,7 @@
     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
         <div class="p-6 border-b border-slate-100 flex justify-between items-center">
             <h3 class="font-bold text-slate-800">Transaksi Terakhir</h3>
-            <a href="#" class="text-sm text-blue-600 hover:underline">Lihat Semua</a>
+            <a href="{{ route('admin.transactions') }}" class="text-sm text-blue-600 hover:underline">Lihat Semua</a>
         </div>
         <div class="overflow-x-auto">
             <table class="w-full text-sm text-left">

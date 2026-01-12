@@ -4,42 +4,81 @@ namespace App\Livewire;
 
 use Livewire\Component;
 use App\Models\User;
+use App\Models\Transaction; // Wajib import ini untuk hitung omset
 use Livewire\Attributes\Layout;
 
 class AdminFinancialStats extends Component
 {
+    // --- 1. PROPERTI STATISTIK UMUM ---
+    public $totalUangBeredar = 0;
+    public $totalUserSaldo = 0;
+    public $totalMerchantBalance = 0;
+    public $persenUser = 0;
+    public $persenMerchant = 0;
+
+    // --- 2. PROPERTI UNTUK DATA CHART (ARRAY) ---
+    // Top 5 Siswa
+    public $chartUserLabels = [];
+    public $chartUserValues = [];
+
+    // Top 5 Merchant
+    public $chartMerchantLabels = [];
+    public $chartMerchantValues = [];
+
+    // Top 5 Toko (Omset)
+    public $chartStoreLabels = [];
+    public $chartStoreValues = [];
+
+
+    public function mount()
+    {
+        // A. HITUNG TOTAL UANG BEREDAR
+        $this->totalUserSaldo = User::sum('saldo');
+        $this->totalMerchantBalance = User::sum('merchant_balance');
+        $this->totalUangBeredar = $this->totalUserSaldo + $this->totalMerchantBalance;
+
+        // Hitung Persentase (Cegah error division by zero)
+        if ($this->totalUangBeredar > 0) {
+            $this->persenUser = ($this->totalUserSaldo / $this->totalUangBeredar) * 100;
+            $this->persenMerchant = ($this->totalMerchantBalance / $this->totalUangBeredar) * 100;
+        }
+
+        // B. DATA CHART 1: TOP 5 SISWA (SALDO)
+        $topUsers = User::orderByDesc('saldo')->take(5)->get();
+        // Pluck: Ambil kolom tertentu dan jadikan array
+        $this->chartUserLabels = $topUsers->pluck('nama_lengkap')->toArray();
+        $this->chartUserValues = $topUsers->pluck('saldo')->toArray();
+
+        // C. DATA CHART 2: TOP 5 MERCHANT (SALDO)
+        $topMerchants = User::where('merchant_balance', '>', 0) // Ambil yang punya saldo merchant aja
+            ->orderByDesc('merchant_balance') // Sorting via SQL (Cepat)
+            ->take(5)
+            ->get();
+        $this->chartMerchantLabels = $topMerchants->pluck('nama_lengkap')->toArray();
+        $this->chartMerchantValues = $topMerchants->pluck('merchant_balance')->toArray();
+
+        // D. DATA CHART 3: TOP 5 TOKO (OMSET PENJUALAN)
+        // Kita ambil dari tabel Transaction, group by store_id, dan sum total_bayar
+        $topStores = Transaction::selectRaw('store_id, sum(total_bayar) as total_omset')
+            ->where('type', 'payment') // Hanya ambil tipe pembayaran (bukan transfer)
+            ->where('status', 'paid')  // Hanya yang sukses
+            ->groupBy('store_id')
+            ->orderByDesc('total_omset')
+            ->with('store') // Eager load relasi ke tabel stores
+            ->take(5)
+            ->get();
+
+        // Mapping data toko (Handle jika toko dihapus/null)
+        $this->chartStoreLabels = $topStores->map(function ($item) {
+            return $item->store->nama_toko ?? 'Unknown Store';
+        })->toArray();
+
+        $this->chartStoreValues = $topStores->pluck('total_omset')->toArray();
+    }
+
     #[Layout('components.layouts.admin')]
     public function render()
     {
-        // 1. Hitung Total Uang
-        $totalUserSaldo = User::sum('saldo');
-        $totalMerchantBalance = User::sum('merchant_balance');
-        $totalUangBeredar = $totalUserSaldo + $totalMerchantBalance;
-
-        // 2. Hitung Persentase (Handle division by zero)
-        $persenUser = $totalUangBeredar > 0 ? ($totalUserSaldo / $totalUangBeredar) * 100 : 0;
-        $persenMerchant = $totalUangBeredar > 0 ? ($totalMerchantBalance / $totalUangBeredar) * 100 : 0;
-
-        // 3. Top 5 User Sultan (Berdasarkan Saldo Pribadi)
-        $topUsers = User::orderByDesc('saldo')
-            ->take(5)
-            ->get(['nama_lengkap', 'username', 'saldo']);
-
-        // 4. Top 5 Merchant Laris (Berdasarkan Merchant Balance)
-        // Kita filter yang balance-nya > 0 saja biar rapi
-        $topMerchants = User::where('merchant_balance', '>', 0)
-            ->orderByDesc('merchant_balance')
-            ->take(5)
-            ->get(['nama_lengkap', 'username', 'merchant_balance']);
-
-        return view('Livewire.admin-financial-stats', [
-            'totalUangBeredar' => $totalUangBeredar,
-            'totalUserSaldo' => $totalUserSaldo,
-            'totalMerchantBalance' => $totalMerchantBalance,
-            'persenUser' => round($persenUser, 1),
-            'persenMerchant' => round($persenMerchant, 1),
-            'topUsers' => $topUsers,
-            'topMerchants' => $topMerchants,
-        ]);
+        return view('Livewire.admin-financial-stats');
     }
 }

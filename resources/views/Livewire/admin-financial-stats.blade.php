@@ -50,126 +50,158 @@
     {{-- SECTION 2: CHART & TOP LIST --}}
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-        {{-- KOLOM KIRI: Pie Chart --}}
+        {{-- CHART 1: Komposisi Uang (Existing) --}}
         <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm lg:col-span-1">
             <h3 class="text-slate-800 font-bold mb-6">Komposisi Uang</h3>
             {{-- Tempat Render Chart --}}
-            <div id="moneyDistributionChart" class="flex justify-center"></div>
+            <div wire:ignore>
+                <div id="moneyDistributionChart" class="flex justify-center min-h-[320px]"></div>
+            </div>
         </div>
 
-        {{-- KOLOM KANAN: Top List (Tabular) --}}
-        <div
-            class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-8">
+        {{-- CHART 2: Top 5 Saldo Siswa --}}
+    <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col">
+        <h3 class="text-slate-800 font-bold mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-users text-indigo-500"></i> Top 5 Saldo Siswa
+        </h3>
+        <div wire:ignore class="flex-1 flex items-center justify-center">
+            <div id="topUsersChart" class="w-full h-full min-h-[300px]"></div>
+        </div>
+    </div>
 
-            {{-- Top 5 Sultan (User) --}}
-            <div>
-                <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 border-b pb-2">Top 5 Saldo
-                    Siswa</h4>
-                <div class="space-y-4">
-                    @foreach($topUsers as $index => $user)
-                        <div class="flex items-center justify-between group">
-                            <div class="flex items-center gap-3">
-                                <div
-                                    class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-600 transition">
-                                    {{ $index + 1 }}
-                                </div>
-                                <div>
-                                    <p class="text-sm font-bold text-slate-700 truncate w-24 md:w-32">
-                                        {{ $user->nama_lengkap }}</p>
-                                    <p class="text-[10px] text-slate-400">{{ $user->username }}</p>
-                                </div>
-                            </div>
-                            <span
-                                class="text-xs font-bold text-slate-800 bg-slate-50 px-2 py-1 rounded-md border border-slate-100">
-                                {{ number_format($user->saldo / 1000, 0) }}k
-                            </span>
-                        </div>
-                    @endforeach
-                </div>
-            </div>
+    {{-- CHART 3: Top 5 Saldo Merchant --}}
+    <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col">
+        <h3 class="text-slate-800 font-bold mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-shop text-orange-500"></i> Top 5 Saldo Merchant
+        </h3>
+        <div wire:ignore class="flex-1 flex items-center justify-center">
+            <div id="topMerchantsChart" class="w-full h-full min-h-[300px]"></div>
+        </div>
+    </div>
 
-            {{-- Top 5 Merchant --}}
-            <div>
-                <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 border-b pb-2">Top 5 Omset
-                    Merchant</h4>
-                <div class="space-y-4">
-                    @foreach($topMerchants as $index => $merchant)
-                        <div class="flex items-center justify-between group">
-                            <div class="flex items-center gap-3">
-                                <div
-                                    class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-500 group-hover:bg-orange-100 group-hover:text-orange-600 transition">
-                                    {{ $index + 1 }}
-                                </div>
-                                <div>
-                                    <p class="text-sm font-bold text-slate-700 truncate w-24 md:w-32">
-                                        {{ $merchant->nama_lengkap }}</p>
-                                    <p class="text-[10px] text-slate-400">Merchant</p>
-                                </div>
-                            </div>
-                            <span
-                                class="text-xs font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded-md border border-orange-100">
-                                {{ number_format($merchant->merchant_balance / 1000, 0) }}k
-                            </span>
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-
+    {{-- CHART 4: Top 5 Pendapatan Toko --}}
+    <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col">
+        <h3 class="text-slate-800 font-bold mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-cash-register text-emerald-500"></i> Top 5 Omset Toko
+        </h3>
+        <div wire:ignore class="flex-1 flex items-center justify-center">
+            <div id="topStoresChart" class="w-full h-full min-h-[300px]"></div>
         </div>
     </div>
 </div>
-
-{{-- SCRIPT CHART (Letakkan di stack scripts layout utama atau disini) --}}
 @push('scripts')
-    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
-    <script>
-        document.addEventListener('livewire:initialized', () => {
-            var options = {
-                series: [{{ $totalUserSaldo }}, {{ $totalMerchantBalance }}],
+{{-- Load Library --}}
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+<script>
+    document.addEventListener('livewire:navigated', () => {
+
+        // --- FUNGSI HELPER UNTUK MEMBUAT PIE CHART (BIAR GAK CAPEK KETIK ULANG) ---
+        function renderPieChart(elementId, labels, series, colors) {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+            el.innerHTML = ''; // Reset canvas
+
+            // Cek jika data kosong
+            if (series.length === 0 || series.every(item => item === 0)) {
+                el.innerHTML = '<div class="flex items-center justify-center h-full text-slate-400 text-sm">Belum ada data</div>';
+                return;
+            }
+
+            const options = {
+                series: series,
                 chart: {
-                    type: 'donut',
+                    type: 'donut', // Bisa ganti 'pie' kalau mau full
                     height: 320,
-                    fontFamily: 'inherit'
+                    fontFamily: 'Inter, sans-serif',
                 },
-                labels: ['Saldo User', 'Saldo Merchant'],
-                colors: ['#3B82F6', '#F97316'], // Blue-500 & Orange-500
+                labels: labels,
+                colors: colors,
                 plotOptions: {
                     pie: {
                         donut: {
-                            size: '75%',
+                            size: '65%',
                             labels: {
                                 show: true,
+                                name: { show: true, fontSize: '11px' },
+                                value: {
+                                    show: true,
+                                    fontSize: '14px',
+                                    fontWeight: 700,
+                                    formatter: (val) => "Rp " + (val / 1000).toFixed(0) + "k"
+                                },
                                 total: {
                                     show: true,
-                                    label: 'Total Beredar',
+                                    label: 'Total',
+                                    fontSize: '10px',
                                     formatter: function (w) {
-                                        // Formatter Rupiah Singkat (Juta/Ribu)
                                         let val = w.globals.seriesTotals.reduce((a, b) => a + b, 0);
-                                        return "Rp " + (val / 1000000).toFixed(1) + "Jt";
+                                        return (val / 1000000).toFixed(1) + " Juta";
                                     }
                                 }
                             }
                         }
                     }
                 },
-                dataLabels: {
-                    enabled: false // Matikan angka di dalam chart biar bersih
-                },
-                legend: {
-                    position: 'bottom',
-                    horizontalAlign: 'center'
-                },
+                dataLabels: { enabled: false }, // Matikan angka numpuk di chart
+                stroke: { show: true, width: 2, colors: ['#ffffff'] },
+                legend: { position: 'bottom', fontSize: '11px' },
                 tooltip: {
                     y: {
-                        formatter: function (value) {
-                            return "Rp " + new Intl.NumberFormat('id-ID').format(value);
+                        formatter: function (val) {
+                            return "Rp " + new Intl.NumberFormat('id-ID').format(val);
                         }
                     }
                 }
             };
 
-            var chart = new ApexCharts(document.querySelector("#moneyDistributionChart"), options);
+            const chart = new ApexCharts(el, options);
             chart.render();
-        });
-    </script>
+        }
+
+        // --- 1. RENDER CHART KOMPOSISI UANG (MANUAL KARENA CUMA 2 DATA) ---
+        // (Logika yang sebelumnya kita buat)
+        const chartEl1 = document.getElementById('moneyDistributionChart');
+        if (chartEl1) {
+            chartEl1.innerHTML = '';
+            var options1 = {
+                series: [{{ $totalUserSaldo ?? 0 }}, {{ $totalMerchantBalance ?? 0 }}],
+                chart: { type: 'donut', height: 320, fontFamily: 'inherit' },
+                labels: ['Siswa', 'Merchant'],
+                colors: ['#3B82F6', '#F97316'], // Biru & Orange
+                plotOptions: { pie: { donut: { size: '70%' } } },
+                dataLabels: { enabled: false },
+                legend: { position: 'bottom' },
+                tooltip: { y: { formatter: (val) => "Rp " + new Intl.NumberFormat('id-ID').format(val) } }
+            };
+            new ApexCharts(chartEl1, options1).render();
+        }
+
+
+        // --- 2. RENDER CHART TOP SISWA (PAKAI HELPER) ---
+        renderPieChart(
+            'topUsersChart',
+            @json($chartUserLabels),
+            @json($chartUserValues),
+            ['#6366f1', '#818cf8', '#a5b4fc', '#c7d2fe', '#e0e7ff'] // Gradasi Indigo
+        );
+
+        // --- 3. RENDER CHART TOP MERCHANT (PAKAI HELPER) ---
+        renderPieChart(
+            'topMerchantsChart',
+            @json($chartMerchantLabels),
+            @json($chartMerchantValues),
+            ['#f97316', '#fb923c', '#fdba74', '#fed7aa', '#ffedd5'] // Gradasi Orange
+        );
+
+        // --- 4. RENDER CHART TOP TOKO (PAKAI HELPER) ---
+        renderPieChart(
+            'topStoresChart',
+            @json($chartStoreLabels),
+            @json($chartStoreValues),
+            ['#10b981', '#34d399', '#6ee7b7', '#a7f3d0', '#d1fae5'] // Gradasi Emerald
+        );
+
+    });
+</script>
 @endpush

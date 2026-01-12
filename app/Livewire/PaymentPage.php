@@ -57,7 +57,7 @@ class PaymentPage extends Component
         }
 
         // 4. Eksekusi Database (Pakai Transaction biar aman)
-        DB::transaction(function () use ($user) {
+        $transaction = DB::transaction(function () use ($user) {
 
             // A. Kurangi Saldo Pembeli
             $user->saldo -= $this->amount;
@@ -70,22 +70,21 @@ class PaymentPage extends Component
                 $merchant->save();
             }
 
-            // C. Catat Struk (Tabel Transactions - Laporan Admin)
-            Transaction::create([
+            // C. Catat Struk
+            // PERBAIKAN: Return object transaksi ini agar bisa dipakai di luar
+            $newTrx = Transaction::create([
                 'transaction_code' => 'TRX-' . time() . rand(100, 999),
                 'user_id' => $user->id,
                 'total_bayar' => $this->amount,
                 'status' => 'paid',
                 'tanggal_transaksi' => now(),
                 'expired_at' => null,
-
-                // --- UPDATE LOGIKA BARU ---
-                'type' => 'payment', // Penanda Pembayaran Toko
+                'type' => 'payment',
                 'description' => 'Pembayaran ke ' . $this->store->nama_toko . ($this->note ? " ({$this->note})" : ''),
-                // 'store_id' => $this->store->id, // Uncomment jika kolom store_id ada
+                'store_id' => $this->store->id, // PERBAIKAN: Wajib diisi agar muncul di history toko
             ]);
 
-            // D. Catat Mutasi Pembeli (Debit / Uang Keluar)
+            // D. Catat Mutasi Pembeli
             BalanceMutation::create([
                 'user_id' => $user->id,
                 'type' => 'debit',
@@ -96,7 +95,7 @@ class PaymentPage extends Component
                 'related_user_id' => $merchant ? $merchant->id : null
             ]);
 
-            // E. Catat Mutasi Penjual (Kredit / Uang Masuk)
+            // E. Catat Mutasi Penjual
             if ($merchant) {
                 BalanceMutation::create([
                     'user_id' => $merchant->id,
@@ -108,16 +107,21 @@ class PaymentPage extends Component
                     'related_user_id' => $user->id
                 ]);
             }
+
+            // PENTING: Return objek agar keluar dari scope transaction
+            return $newTrx;
         });
 
         // Feedback Sukses
         session()->flash('success', 'Pembayaran Berhasil sebesar Rp ' . number_format($this->amount));
 
-        return redirect()->route('payment.success');
+        // PERBAIKAN 2: Masukkan parameter code untuk redirect
+        // Asumsi nama kolom di DB adalah 'transaction_code'
+        return redirect()->route('payment.success', ['code' => $transaction->transaction_code]);
     }
 
     public function render()
     {
-        return view('livewire.payment-page');
+        return view('Livewire.payment-page');
     }
 }

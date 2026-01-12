@@ -13,6 +13,6 @@ class AdminMerchantList extends Component
     {
         // Ambil data toko + pemiliknya
         $stores = Store::with('owner')->paginate(10);
-        return view('livewire.admin-merchant-list', ['stores' => $stores]);
+        return view('Livewire.admin-merchant-list', ['stores' => $stores]);
     }
 }

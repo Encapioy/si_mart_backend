@@ -25,7 +25,7 @@ class ProfilePage extends Component
     #[Layout('components.layouts.userbar')]
     public function render()
     {
-        return view('livewire.profile-page', [
+        return view('Livewire.profile-page', [
             'user' => Auth::user()
         ]);
     }

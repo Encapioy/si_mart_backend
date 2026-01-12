@@ -1,4 +1,5 @@
 <div class="min-h-screen bg-gray-50 pb-32">
+    
     <div class="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-100">
         <div class="px-6 py-4 flex items-center justify-between">
             <h1 class="text-xl font-bold text-slate-800">Riwayat Transaksi</h1>

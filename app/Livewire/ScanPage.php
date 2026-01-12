@@ -8,6 +8,6 @@ class ScanPage extends Component
 {
     public function render()
     {
-        return view('livewire.scan-page');
+        return view('Livewire.scan-page');
     }
 }

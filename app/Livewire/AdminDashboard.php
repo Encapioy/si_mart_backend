@@ -14,7 +14,7 @@ class AdminDashboard extends Component
     #[Layout('components.layouts.admin')]
     public function render()
     {
-        return view('livewire.admin-dashboard', [
+        return view('Livewire.admin-dashboard', [
             // 1. Uang Beredar (Hanya User & Merchant, Admin jangan dihitung)
             'uang_beredar' => User::sum('saldo'),
 

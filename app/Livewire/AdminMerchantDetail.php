@@ -49,7 +49,7 @@ class AdminMerchantDetail extends Component
             ->latest() // Urutkan dari yang terbaru
             ->paginate(10); // 10 per halaman
 
-        return view('livewire.admin-merchant-detail', [
+        return view('Livewire.admin-merchant-detail', [
             'transactions' => $transactions
         ]);
     }

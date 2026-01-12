@@ -56,7 +56,7 @@ class TransferPage extends Component
         }
 
         // 4. Proses Database (Pakai Transaction)
-        DB::transaction(function () use ($sender) {
+        $transaction = DB::transaction(function () use ($sender) {
 
             // A. Kurangi Saldo Pengirim
             $sender->saldo -= $this->amount;
@@ -66,51 +66,55 @@ class TransferPage extends Component
             $this->targetUser->saldo += $this->amount;
             $this->targetUser->save();
 
-            // C. Catat Transaksi (Laporan Admin)
-            Transaction::create([
+            // C. Buat Transaksi
+            $newTrx = Transaction::create([
                 'transaction_code' => 'TRF-' . time() . rand(100, 999),
-                'user_id' => $sender->id, // Transaksi milik pengirim
+                'user_id' => $sender->id,
                 'total_bayar' => $this->amount,
-                'status' => 'paid',
+                'status' => 'paid', // Transfer dianggap langsung sukses/paid
                 'tanggal_transaksi' => now(),
                 'expired_at' => null,
-
-                // --- UPDATE LOGIKA BARU ---
-                'type' => 'transfer', // Tipe Transfer
+                'type' => 'transfer',
                 'description' => 'Transfer ke ' . $this->targetUser->nama_lengkap . ($this->note ? " ({$this->note})" : ''),
+                'store_id' => null, // Pastikan nullable di database jika bukan transaksi toko
             ]);
 
-            // D. Catat Mutasi Pengirim (Uang Keluar / Debit)
+            // D. Mutasi Pengirim (Debit)
             BalanceMutation::create([
                 'user_id' => $sender->id,
                 'type' => 'debit',
                 'amount' => $this->amount,
                 'current_balance' => $sender->saldo,
-                'category' => 'transfer_out', // Kategori khusus transfer keluar
+                'category' => 'transfer_out',
                 'description' => 'Transfer ke ' . $this->targetUser->nama_lengkap,
                 'related_user_id' => $this->targetUser->id
             ]);
 
-            // E. Catat Mutasi Penerima (Uang Masuk / Kredit)
+            // E. Mutasi Penerima (Kredit)
             BalanceMutation::create([
                 'user_id' => $this->targetUser->id,
                 'type' => 'credit',
                 'amount' => $this->amount,
                 'current_balance' => $this->targetUser->saldo,
-                'category' => 'transfer_in', // Kategori khusus terima transfer
+                'category' => 'transfer_in',
                 'description' => 'Terima saldo dari ' . $sender->nama_lengkap,
                 'related_user_id' => $sender->id
             ]);
+
+            // PENTING: Return objek transaksi agar keluar dari fungsi closure ini
+            return $newTrx;
         });
 
-        // Feedback Sukses & Redirect
-        session()->flash('success', 'Transfer Berhasil ke ' . $this->targetUser->nama_lengkap);
+        // Feedback Sukses
+        session()->flash('success', 'Transfer Berhasil!');
 
-        return redirect()->route('dashboard');
+        // 5. Redirect (Sekarang variabel $transaction sudah dikenali)
+        // Pastikan parameter 'code' mengambil dari 'transaction_code'
+        return redirect()->route('payment.success', ['code' => $transaction->transaction_code]);
     }
 
     public function render()
     {
-        return view('livewire.transfer-page');
+        return view('Livewire.transfer-page');
     }
 }

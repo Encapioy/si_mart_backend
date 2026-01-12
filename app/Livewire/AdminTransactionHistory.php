@@ -41,7 +41,7 @@ class AdminTransactionHistory extends Component
             ->latest()
             ->paginate(10);
 
-        return view('livewire.admin-transaction-history', [
+        return view('Livewire.admin-transaction-history', [
             'transactions' => $transactions
         ]);
     }

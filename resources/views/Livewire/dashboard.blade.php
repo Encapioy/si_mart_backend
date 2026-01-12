@@ -1,4 +1,5 @@
 <div class="min-h-screen bg-gray-50 pb-20 relative font-sans">
+    
     <div class="relative bg-gradient-to-br from-blue-600 via-blue-700 to-blue-900 pt-12 pb-32 rounded-b-[3rem] shadow-lg overflow-hidden">
 
         <div class="absolute top-0 left-0 w-full h-full overflow-hidden opacity-20 pointer-events-none">

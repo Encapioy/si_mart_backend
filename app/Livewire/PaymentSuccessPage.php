@@ -23,6 +23,6 @@ class PaymentSuccessPage extends Component
 
     public function render()
     {
-        return view('livewire.payment-success-page');
+        return view('Livewire.payment-success-page');
     }
 }

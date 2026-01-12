@@ -31,11 +31,6 @@
                         {{ number_format($transaction->total_bayar, 0, ',', '.') }}</span>
                 </div>
 
-                <div class="flex justify-between items-center">
-                    <span class="text-gray-500 text-sm">Biaya Admin</span>
-                    <span class="font-bold text-slate-800">Rp 0</span>
-                </div>
-
                 <div class="h-px bg-gray-100 my-2"></div>
 
                 <div class="flex justify-between items-center">

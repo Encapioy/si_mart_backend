@@ -16,7 +16,7 @@ class Dashboard extends Component
         // Ambil Member ID. Kalau kosong (user lama), kita kasih peringatan/fallback
         $memberId = $user->member_id;
 
-        return view('livewire.dashboard', [
+        return view('Livewire.dashboard', [
             'memberId' => $memberId,
             'user' => $user
         ]);

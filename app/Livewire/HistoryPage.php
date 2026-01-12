@@ -22,7 +22,7 @@ class HistoryPage extends Component
             ->latest()
             ->paginate(10); // Otomatis handle ?page=2 dst
 
-        return view('livewire.history-page', [
+        return view('Livewire.history-page', [
             'mutations' => $mutations
         ]);
     }

@@ -1,4 +1,5 @@
 <div class="min-h-screen bg-slate-50 text-slate-800 flex flex-col p-6">
+    
     <div class="bg-white p-4 rounded-xl flex items-center space-x-3 mb-8 border border-slate-200 shadow-sm">
         <div class="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold text-lg">
             {{ substr($targetUser->nama_lengkap ?? 'U', 0, 1) }}

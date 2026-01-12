@@ -21,7 +21,7 @@ class AdminTopupHistory extends Component
             ->latest()
             ->paginate(10);
 
-        return view('livewire.admin-topup-history', [
+        return view('Livewire.admin-topup-history', [
             'history' => $history
         ]);
     }

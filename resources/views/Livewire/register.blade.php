@@ -1,4 +1,5 @@
 <div class="min-h-screen w-full flex items-center justify-center bg-[#F3F4F6] py-10 px-4 font-sans">
+    
     {{-- Card Container --}}
     <div class="bg-white p-8 md:p-10 rounded-3xl shadow-2xl w-full max-w-xl border border-white/50 relative overflow-hidden">
 

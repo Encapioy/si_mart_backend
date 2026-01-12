@@ -32,7 +32,7 @@ class AdminFinancialStats extends Component
             ->take(5)
             ->get(['nama_lengkap', 'username', 'merchant_balance']);
 
-        return view('livewire.admin-financial-stats', [
+        return view('Livewire.admin-financial-stats', [
             'totalUangBeredar' => $totalUangBeredar,
             'totalUserSaldo' => $totalUserSaldo,
             'totalMerchantBalance' => $totalMerchantBalance,

@@ -1,5 +1,4 @@
 <div class="relative flex flex-col justify-center h-screen bg-black">
-
     <a href="{{ route('dashboard') }}" wire:navigate
         class="absolute z-50 p-2 transition rounded-full top-6 left-6 text-white bg-white/20 backdrop-blur hover:bg-white/30">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -172,4 +172,5 @@
             chart.render();
         });
     </script>
+    
 @endpush

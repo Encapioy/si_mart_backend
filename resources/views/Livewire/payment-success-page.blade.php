@@ -1,5 +1,4 @@
 <div class="min-h-screen bg-gray-50 flex flex-col justify-center py-12 px-6 sm:px-8">
-
     <div class="relative w-full max-w-sm mx-auto bg-white rounded-3xl shadow-xl overflow-hidden">
 
         <div class="bg-green-500 pt-10 pb-16 text-center relative">

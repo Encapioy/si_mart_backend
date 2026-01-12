@@ -1,4 +1,5 @@
 <div class="mt-12">
+    
             <div class="flex items-center justify-between mb-6 pb-4 border-b border-slate-200">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center text-slate-400 border border-slate-100">

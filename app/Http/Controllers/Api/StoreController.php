@@ -241,37 +241,49 @@ class StoreController extends Controller
             ->where('status', 'paid');
 
         // 2. Query Data Hari Ini
-        $todayTransactions = (clone $baseQuery)
-            ->whereDate('created_at', Carbon::today())
-            ->get();
+        $todayQuery = (clone $baseQuery)->whereDate('created_at', Carbon::today());
+        $todayIncome = $todayQuery->sum('total_bayar');
+        $todayCount = $todayQuery->count();
 
         // 3. Query Data Bulan Ini
-        $monthTransactions = (clone $baseQuery)
+        $monthQuery = (clone $baseQuery)
             ->whereMonth('created_at', Carbon::now()->month)
-            ->whereYear('created_at', Carbon::now()->year)
-            ->get();
+            ->whereYear('created_at', Carbon::now()->year);
+        $monthIncome = $monthQuery->sum('total_bayar');
+        $monthCount = $monthQuery->count();
 
         // 4. Query Data Selamanya (ALL TIME) - BARU!
         $allTimeIncome = (clone $baseQuery)->sum('total_bayar');
         $allTimeCount = (clone $baseQuery)->count();
 
+        // 5. RIWAYAT TRANSAKSI (Ini yang kamu minta)
+        // Kita pakai simplePaginate biar cocok buat "Infinite Scroll" di HP
+        $history = (clone $baseQuery)
+            ->with('user:id,nama_lengkap,username') // Ambil nama pembeli
+            ->latest() // Urutkan dari yang terbaru
+            ->simplePaginate(10); // Ambil 10 per halaman
+
         return response()->json([
             'status' => 'success',
             'data' => [
-                'today' => [
-                    'total_income' => $todayTransactions->sum('total_bayar'), // Pake kolom total_bayar
-                    'transaction_count' => $todayTransactions->count(),
-                    'details' => $todayTransactions // List transaksinya
+                // Blok Statistik
+                'stats' => [
+                    'today' => [
+                        'total_income' => (int) $todayIncome,
+                        'transaction_count' => $todayCount,
+                    ],
+                    'this_month' => [
+                        'total_income' => (int) $monthIncome,
+                        'transaction_count' => $monthCount,
+                    ],
+                    'all_time' => [
+                        'total_income' => (int) $allTimeIncome,
+                        'transaction_count' => $allTimeCount,
+                    ]
                 ],
-                'this_month' => [
-                    'total_income' => $monthTransactions->sum('total_bayar'),
-                    'transaction_count' => $monthTransactions->count(),
-                    'details' => $monthTransactions
-                ],
-                'all_time' => [
-                    'total_income' => (int) $allTimeIncome,
-                    'transaction_count' => $allTimeCount,
-                ]
+
+                // Blok Riwayat (Paginated)
+                'history' => $history
             ]
         ]);
     }

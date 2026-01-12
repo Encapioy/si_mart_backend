@@ -113,7 +113,7 @@ class PaymentPage extends Component
         // Feedback Sukses
         session()->flash('success', 'Pembayaran Berhasil sebesar Rp ' . number_format($this->amount));
 
-        return redirect()->route('dashboard');
+        return redirect()->route('payment.success');
     }
 
     public function render()

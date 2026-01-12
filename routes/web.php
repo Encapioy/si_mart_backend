@@ -18,12 +18,14 @@ use App\Livewire\AdminMerchantDetail;
 use App\Livewire\AdminMerchantList;
 use App\Livewire\AdminDashboard;
 use App\Livewire\AdminTransactionHistory;
+use App\Livewire\AdminFinancialStats;
 use App\Livewire\AdminTopupHistory;
 use App\Livewire\AdminTopup;
 
 // 1. Landing Page
 Route::get('/', function () {
-    return view('landing'); })->name('home');
+    return view('landing');
+})->name('home');
 
 // 2. Login Page
 Route::get('/register', Register::class)->name('register');
@@ -51,6 +53,7 @@ Route::middleware(['auth:admin'])->group(function () {
     Route::get('/admin/dashboard', AdminDashboard::class)->name('admin.dashboard');
     Route::get('/admin/merchant/', AdminMerchantList::class)->name('admin.merchant.list');
     Route::get('/admin/merchant/{storeId}', AdminMerchantDetail::class)->name('admin.merchant.detail');
+    Route::get('/admin/finance', AdminFinancialStats::class)->name('admin.finance.stats');
     Route::get('/admin/transactions', AdminTransactionHistory::class)->name('admin.transactions');
     Route::get('/admin/topups', AdminTopupHistory::class)->name('admin.topups');
 });

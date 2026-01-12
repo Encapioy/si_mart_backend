@@ -2,15 +2,17 @@
 
 namespace App\Livewire;
 
+use Livewire\WithPagination;
 use Livewire\Component;
 use App\Models\Store;
-use App\Models\BalanceMutation;
 use App\Models\Transaction;
 use Carbon\Carbon;
 use Livewire\Attributes\Layout;
 
 class AdminMerchantDetail extends Component
 {
+
+    use WithPagination;
     public $store;
     public $incomeToday = 0;
     public $incomeMonth = 0;
@@ -41,6 +43,15 @@ class AdminMerchantDetail extends Component
     #[Layout('components.layouts.admin')]
     public function render()
     {
-        return view('livewire.admin-merchant-detail');
+
+        $transactions = Transaction::with('user') // Load pembelinya siapa
+            ->where('store_id', $this->store->id)
+            ->where('status', 'paid')
+            ->latest() // Urutkan dari yang terbaru
+            ->paginate(10); // 10 per halaman
+
+        return view('livewire.admin-merchant-detail', [
+            'transactions' => $transactions
+        ]);
     }
 }

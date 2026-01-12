@@ -46,7 +46,7 @@
             <div class="relative">
                 <input wire:model="pin" type="password" inputmode="numeric" maxlength="6"
                     class="w-full bg-white border border-slate-200 rounded-xl px-4 py-4 text-sm text-slate-800 outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition text-center tracking-[0.5em] font-bold placeholder-slate-300 shadow-sm"
-                    placeholder="••••••">
+                    placeholder="Masukan Pin">
                 @error('pin')
                     <span class="text-red-500 text-xs text-center block mt-2 font-medium">{{ $message }}</span>
                 @enderror
@@ -67,9 +67,10 @@
                 </span>
             </button>
 
-            <a href="{{ route('dashboard') }}" class="block text-center text-slate-400 text-xs font-medium hover:text-slate-600 transition py-2">
-                BATALKAN TRANSAKSI
-            </a>
+            <a href="{{ route('dashboard') }}"
+   class="block w-full text-center py-3.5 rounded-xl bg-red-50 text-red-600 font-bold text-sm tracking-wide hover:bg-red-100 hover:text-red-700 transition-all duration-200 active:scale-[0.98]">
+    BATALKAN TRANSAKSI
+</a>
         </div>
     </form>
 

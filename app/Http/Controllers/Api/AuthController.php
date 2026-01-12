@@ -23,8 +23,8 @@ class AuthController extends Controller
             'nama_lengkap' => 'required|string|max:255',
             'username' => 'required|string|max:255|unique:users',
             'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:6',
-            'pin' => 'nullable|digits:6',
+            'password' => 'required|min:6',
+            'pin' => 'required|digits:6',
         ]);
 
         if ($validator->fails()) {
@@ -78,12 +78,13 @@ class AuthController extends Controller
         ], 201);
     }
 
-    // CEK KETERSEDIAAN USERNAME/EMAIL (REAL-TIME)
+    // CEK KETERSEDIAAN USERNAME/EMAIL/NO HP (REAL-TIME API)
     public function checkAvailability(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'username' => 'nullable|string|max:255',
+            'username' => 'nullable|string|min:3|max:255',
             'email' => 'nullable|string|email|max:255',
+            'no_hp' => 'nullable|numeric|digits_between:10,15', // Tambahan validasi No HP
         ]);
 
         if ($validator->fails())
@@ -91,14 +92,32 @@ class AuthController extends Controller
 
         // 1. Cek Username
         if ($request->filled('username')) {
-            $isTaken = User::where('username', $request->username)->exists();
+
+            // SANITASI INPUT: Ubah spasi jadi underscore
+            $cleanUsername = preg_replace('/\s+/', '_', $request->username);
+
+            // Cek format (Opsional, sesuaikan kebutuhan)
+            if (!preg_match('/^[a-zA-Z0-9_]+$/', $cleanUsername)) {
+                return response()->json([
+                    'status' => 'unavailable',
+                    'field' => 'username',
+                    'message' => 'Format username tidak valid (gunakan huruf, angka, _).'
+                ], 200);
+            }
+
+            // Cek Database menggunakan username yang sudah bersih
+            $isTaken = User::where('username', $cleanUsername)->exists();
+
             if ($isTaken) {
                 return response()->json([
                     'status' => 'unavailable',
                     'field' => 'username',
                     'message' => 'Username sudah dipakai orang lain.'
-                ], 200); // Return 200 biar frontend gak error, tapi statusnya unavailable
+                ], 200);
             }
+
+            // Jika cleanUsername beda dengan request asli (karena ada spasi),
+            // kita bisa kasih info balik agar frontend mengoreksinya (Opsional)
         }
 
         // 2. Cek Email
@@ -109,6 +128,19 @@ class AuthController extends Controller
                     'status' => 'unavailable',
                     'field' => 'email',
                     'message' => 'Email sudah terdaftar.'
+                ], 200);
+            }
+        }
+
+        // 3. Cek No HP (BARU)
+        if ($request->filled('no_hp')) {
+            // Pastikan kolom di database kamu namanya 'no_hp'
+            $isTaken = User::where('no_hp', $request->no_hp)->exists();
+            if ($isTaken) {
+                return response()->json([
+                    'status' => 'unavailable',
+                    'field' => 'no_hp',
+                    'message' => 'Nomor HP sudah terdaftar.'
                 ], 200);
             }
         }

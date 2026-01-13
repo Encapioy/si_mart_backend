@@ -1,5 +1,5 @@
 <div class="min-h-screen bg-gray-50 pb-32">
-    
+
     <div class="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-100">
         <div class="px-6 py-4 flex items-center justify-between">
             <h1 class="text-xl font-bold text-slate-800">Riwayat Transaksi</h1>
@@ -58,7 +58,8 @@
                         <span class="text-[10px] px-2 py-0.5 rounded-md font-medium uppercase tracking-wide
                             {{ $item->category == 'payment' ? 'bg-orange-50 text-orange-600' : '' }}
                             {{ $item->category == 'topup' ? 'bg-blue-50 text-blue-600' : '' }}
-                            {{ $item->category == 'transfer' ? 'bg-purple-50 text-purple-600' : '' }}
+                            {{ $item->category == 'transfer_in' ? 'bg-green-50 text-green-600' : '' }}
+                            {{ $item->category == 'transfer_out' ? 'bg-red-50 text-red-600' : '' }}
                         ">
                             {{ $item->category }}
                         </span>

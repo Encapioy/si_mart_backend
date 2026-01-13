@@ -16,23 +16,32 @@
 
             <div class="text-center mb-8 border-b border-dashed border-gray-200 pb-6">
                 <p class="text-xs text-gray-400 uppercase tracking-widest font-semibold mb-2">Penerima Dana</p>
-                <h3 class="text-xl font-bold text-slate-800">
-                    {{ $transaction->store->nama_toko ?? 'Transfer Sesama User' }}
-                </h3>
-                @if(isset($transaction->store))
-                    <p class="text-sm text-gray-500 mt-1">Merchant / Toko</p>
+
+                <h3 class="text-xl font-bold text-slate-800 px-4">
+                @if($transaction->store)
+                {{-- Jika Pembayaran Toko --}}
+                {{ $transaction->store->nama_toko }}
+                @else
+                {{-- Jika Transfer: Ambil nama dari Deskripsi --}}
+                {{-- Kita hapus kata "Transfer ke " agar yang muncul Namanya saja --}}
+                {{ str_replace('Transfer ke ', '', $transaction->description) }}
                 @endif
+                </h3>
+
+                <p class="text-sm text-gray-500 mt-1">
+                @if($transaction->store)
+                    <span class="inline-flex items-center gap-1 bg-orange-50 text-orange-600 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide">
+                        <i class="fa-solid fa-store"></i> Merchant
+                    </span>
+                    @else
+                    <span class="inline-flex items-center gap-1 bg-blue-50 text-blue-600 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide">
+                        <i class="fa-solid fa-user"></i> Personal
+                    </span>
+                    @endif
+                </p>
             </div>
 
             <div class="space-y-4">
-                <div class="flex justify-between items-center">
-                    <span class="text-gray-500 text-sm">Nominal Bayar</span>
-                    <span class="font-bold text-slate-800">Rp
-                        {{ number_format($transaction->total_bayar, 0, ',', '.') }}</span>
-                </div>
-
-                <div class="h-px bg-gray-100 my-2"></div>
-
                 <div class="flex justify-between items-center">
                     <span class="text-gray-800 font-bold text-lg">Total</span>
                     <span class="text-green-600 font-extrabold text-xl">Rp

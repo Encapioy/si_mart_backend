@@ -46,16 +46,16 @@ class AdminFinancialStats extends Component
         // B. DATA CHART 1: TOP 5 SISWA (SALDO)
         $topUsers = User::orderByDesc('saldo')->take(5)->get();
         // Pluck: Ambil kolom tertentu dan jadikan array
-        $this->chartUserLabels = $topUsers->pluck('nama_lengkap')->toArray();
-        $this->chartUserValues = $topUsers->pluck('saldo')->toArray();
+        $this->chartUserLabels = array_values($topUsers->pluck('nama_lengkap')->toArray());
+        $this->chartUserValues = array_values($topUsers->pluck('saldo')->map(fn($v) => (float) $v)->toArray());
 
         // C. DATA CHART 2: TOP 5 MERCHANT (SALDO)
         $topMerchants = User::where('merchant_balance', '>', 0) // Ambil yang punya saldo merchant aja
             ->orderByDesc('merchant_balance') // Sorting via SQL (Cepat)
             ->take(5)
             ->get();
-        $this->chartMerchantLabels = $topMerchants->pluck('nama_lengkap')->toArray();
-        $this->chartMerchantValues = $topMerchants->pluck('merchant_balance')->toArray();
+        $this->chartMerchantLabels = array_values($topMerchants->pluck('nama_lengkap')->toArray());
+        $this->chartMerchantValues = array_values($topMerchants->pluck('merchant_balance')->map(fn($v) => (float) $v)->toArray());
 
         // D. DATA CHART 3: TOP 5 TOKO (OMSET PENJUALAN)
         // Kita ambil dari tabel Transaction, group by store_id, dan sum total_bayar
@@ -69,11 +69,11 @@ class AdminFinancialStats extends Component
             ->get();
 
         // Mapping data toko (Handle jika toko dihapus/null)
-        $this->chartStoreLabels = $topStores->map(function ($item) {
-            return $item->store->nama_toko ?? 'Unknown Store';
-        })->toArray();
+        $this->chartStoreLabels = array_values($topStores->map(function ($item) {
+            return $item->store->nama_toko ?? 'Toko Terhapus';
+        })->toArray());
 
-        $this->chartStoreValues = $topStores->pluck('total_omset')->toArray();
+        $this->chartStoreValues = array_values($topStores->pluck('total_omset')->map(fn($v) => (float) $v)->toArray());
     }
 
     #[Layout('components.layouts.admin')]

@@ -167,7 +167,7 @@
             var options1 = {
                 series: [{{ $totalUserSaldo ?? 0 }}, {{ $totalMerchantBalance ?? 0 }}],
                 chart: { type: 'donut', height: 320, fontFamily: 'inherit' },
-                labels: ['Siswa', 'Merchant'],
+                labels: ['User', 'Merchant'],
                 colors: ['#3B82F6', '#F97316'], // Biru & Orange
                 plotOptions: { pie: { donut: { size: '70%' } } },
                 dataLabels: { enabled: false },

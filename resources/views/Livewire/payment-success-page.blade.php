@@ -22,9 +22,7 @@
                 {{-- Jika Pembayaran Toko --}}
                 {{ $transaction->store->nama_toko }}
                 @else
-                {{-- Jika Transfer: Ambil nama dari Deskripsi --}}
-                {{-- Kita hapus kata "Transfer ke " agar yang muncul Namanya saja --}}
-                Transfer ke: <b>{{ $transaction->targetUser->nama_lengkap }}
+                {{ $transaction->targetUser->nama_lengkap }}
                 @endif
                 </h3>
 

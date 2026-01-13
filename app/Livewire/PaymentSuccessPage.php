@@ -17,7 +17,10 @@ class PaymentSuccessPage extends Component
         // 2. Pastikan transaksi itu milik user yang sedang login (Security)
         $this->transaction = Transaction::where('transaction_code', $code)
             ->where('user_id', Auth::id())
-            ->with('store') // Load data toko
+            ->with([
+                'store',         // Load data Toko (jika pembayaran merchant)
+                'targetUser',    // Load data Penerima (jika transfer)
+            ])
             ->firstOrFail(); // Kalau ga ketemu, otomatis 404
     }
 

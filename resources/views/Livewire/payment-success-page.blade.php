@@ -24,7 +24,7 @@
                 @else
                 {{-- Jika Transfer: Ambil nama dari Deskripsi --}}
                 {{-- Kita hapus kata "Transfer ke " agar yang muncul Namanya saja --}}
-                {{ str_replace('Transfer ke ', '', $transaction->description) }}
+                Transfer ke: <b>{{ $transaction->targetUser->nama_lengkap }}
                 @endif
                 </h3>
 

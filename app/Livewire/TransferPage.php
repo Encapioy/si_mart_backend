@@ -70,6 +70,7 @@ class TransferPage extends Component
             $newTrx = Transaction::create([
                 'transaction_code' => 'TRF-' . time() . rand(100, 999),
                 'user_id' => $sender->id,
+                'target_user_id' => $this->targetUser->id,
                 'total_bayar' => $this->amount,
                 'status' => 'paid', // Transfer dianggap langsung sukses/paid
                 'tanggal_transaksi' => now(),

@@ -14,6 +14,7 @@ class Transaction extends Model
         'status',
         'user_id',
         'store_id',
+        'target_user_id',
         'total_bayar',
         'tanggal_transaksi',
         'expired_at'
@@ -29,6 +30,10 @@ class Transaction extends Model
     public function items()
     {
         return $this->hasMany(TransactionItem::class);
+    }
+    public function targetUser()
+    {
+        return $this->belongsTo(User::class, 'target_user_id');
     }
 
     public function store()

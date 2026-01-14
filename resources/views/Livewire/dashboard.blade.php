@@ -1,5 +1,5 @@
 <div class="min-h-screen bg-gray-50 pb-20 relative font-sans">
-    
+
     <div class="relative bg-gradient-to-br from-blue-600 via-blue-700 to-blue-900 pt-12 pb-32 rounded-b-[3rem] shadow-lg overflow-hidden">
 
         <div class="absolute top-0 left-0 w-full h-full overflow-hidden opacity-20 pointer-events-none">
@@ -57,10 +57,14 @@
                         </div>
 
                         <div class="grid grid-cols-1 mt-4">
-                            <button onclick="navigator.clipboard.writeText('{{ $memberId }}'); alert('ID berhasil disalin!')"
+                            <button onclick="openQrModal()"
                                 class="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-blue-50 text-blue-600 font-semibold text-sm hover:bg-blue-100 hover:shadow-sm transition active:scale-95">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
-                                Salin ID
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z">
+            </path>
+        </svg>
+                                Download Kode Qr
                             </button>
                         </div>
                     </div>
@@ -89,4 +93,5 @@
             </p>
         </div>
     </div>
+    <x-modal-my-qr />
 </div>

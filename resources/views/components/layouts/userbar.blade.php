@@ -31,7 +31,7 @@
     </main>
 
     @auth
-        <div class="fixed bottom-0 left-0 z-50 w-full">
+        <div id="userbar" class="fixed bottom-0 left-0 z-50 w-full">
 
             <div class="absolute bottom-0 w-full h-20 bg-white/90 backdrop-blur-md border-t border-gray-200 shadow-[0_-5px_20px_rgba(0,0,0,0.05)] rounded-t-[2rem]"></div>
 

@@ -39,8 +39,8 @@ class AdminFinancialStats extends Component
 
         // Hitung Persentase (Cegah error division by zero)
         if ($this->totalUangBeredar > 0) {
-            $this->persenUser = ($this->totalUserSaldo / $this->totalUangBeredar) * 100;
-            $this->persenMerchant = ($this->totalMerchantBalance / $this->totalUangBeredar) * 100;
+            $this->persenUser = number_format(($this->totalUserSaldo / $this->totalUangBeredar) * 100, 1, ',', '.');
+            $this->persenMerchant = number_format(($this->totalMerchantBalance / $this->totalUangBeredar) * 100, 1, ',', '.');
         }
 
         // B. DATA CHART 1: TOP 5 SISWA (SALDO)

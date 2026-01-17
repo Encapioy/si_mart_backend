@@ -207,7 +207,7 @@ class AdminManageCashier extends Component
             ->orderByDesc('top_ups_sum_amount')
             ->paginate(10);
 
-        return view('livewire.admin-manage-cashier', [
+        return view('Livewire.admin-manage-cashier', [
             'cashiers' => $cashiers
         ]);
     }

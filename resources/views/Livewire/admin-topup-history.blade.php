@@ -61,10 +61,10 @@
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-2">
                                     <div class="w-6 h-6 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center text-[10px] font-bold">
-                                        {{ substr($item->admin->nama_lengkap ?? 'S', 0, 1) }}
+                                        {{ substr($item->admin->username ?? 'S', 0, 1) }}
                                     </div>
                                     <span class="text-slate-600 font-medium text-sm">
-                                        {{ $item->admin->nama_lengkap ?? 'Sistem' }}
+                                        {{ $item->admin->username ?? 'Sistem' }}
                                     </span>
                                 </div>
                             </td>

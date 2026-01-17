@@ -251,7 +251,7 @@
                             </span>
 
                             {{-- Loading Spinner: Muncul HANYA saat loading 'save' --}}
-                            <span wire:loading wire:target="save" class="flex items-center gap-2">
+                            <span wire:loading.class.remove="hidden" wire:target="save" class="hidden flex items-center gap-2">
                                 <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
                                     viewBox="0 0 24 24">
                                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>

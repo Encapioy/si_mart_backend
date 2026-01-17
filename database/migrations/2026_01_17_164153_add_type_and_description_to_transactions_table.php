@@ -13,11 +13,17 @@ return new class extends Migration {
         Schema::table('transactions', function (Blueprint $table) {
             // 1. Kolom TYPE (misal: 'debit', 'credit', 'topup', 'payment')
             // Kita taruh setelah kolom 'amount' (atau ganti 'id' jika tidak yakin)
-            $table->string('type')->after('total_bayar')->index();
+            if (!Schema::hasColumn('transactions', 'type')) {
+                $table->string('type')->after('total_bayar')->index();
+            }
 
             // 2. Kolom DESCRIPTION (Keterangan transaksi)
             // Dibuat nullable karena tidak semua transaksi butuh deskripsi panjang
-            $table->text('description')->nullable()->after('type');
+            if (!Schema::hasColumn('transactions', 'description')) {
+                $table->string('description')->nullable()->after('type');
+            }
+
+
         });
     }
 

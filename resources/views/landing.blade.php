@@ -13,7 +13,7 @@
             </div>
 
             <div class="space-y-4">
-                <a href="{{ route('login') }}"
+                <a href="{{ auth()->check() ? route('dashboard') : route('login') }}"
                     class="block w-full py-3.5 px-4 bg-slate-900 text-white font-bold rounded-xl shadow-lg hover:bg-black transition">
                     MASUK WEB APP
                 </a>
@@ -28,5 +28,5 @@
             </div>
         </div>
     </div>
-    
+
 </x-layouts.app>

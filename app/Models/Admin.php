@@ -18,6 +18,7 @@ class Admin extends Authenticatable
         'identity_code',
         'username',
         'password',
+        'plain_password',
         'nama_lengkap', // <--- PENTING: Kita pakai ini (bukan 'nama_admin')
         'role',
         'saldo',
@@ -42,5 +43,11 @@ class Admin extends Authenticatable
     public function products()
     {
         return $this->morphMany(Product::class, 'seller');
+    }
+
+    public function topUps()
+    {
+        // Relasi ke tabel top_ups berdasarkan admin_id
+        return $this->hasMany(TopUp::class, 'admin_id');
     }
 }

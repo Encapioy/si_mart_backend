@@ -90,7 +90,7 @@
                         <select wire:model="cashier_id" class="w-full bg-white border-slate-200 rounded-lg text-xs py-2 font-bold text-slate-700 focus:border-emerald-500 outline-none">
                             <option value="">Pilih...</option>
                             @foreach($cashiers as $c)
-                                <option value="{{ $c->id }}">{{ explode(' ', $c->nama_lengkap)[0] }}</option> {{-- Nama Depan Aja Biar Pendek --}}
+                                <option value="{{ $c->id }}">{{ explode(' ', $c->username)[0] }}</option> {{-- Nama Depan Aja Biar Pendek --}}
                             @endforeach
                         </select>
                     </div>

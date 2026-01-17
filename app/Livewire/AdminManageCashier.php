@@ -24,7 +24,7 @@ class AdminManageCashier extends Component
 
     // --- Form CRUD ---
     public $adminId;
-    public $name = '';
+    public $nama_lengkap = '';
     public $username = '';
     public $password = '';
     public $pin = '';
@@ -44,7 +44,7 @@ class AdminManageCashier extends Component
     protected function rules()
     {
         return [
-            'name' => 'required|min:3',
+            'nama_lengkap' => 'required|min:3',
             'username' => [
                 'required',
                 'alpha_dash',
@@ -73,7 +73,7 @@ class AdminManageCashier extends Component
         $this->validate();
 
         Admin::create([
-            'name' => $this->name,
+            'nama_lengkap' => $this->nama_lengkap,
             'username' => $this->username,
             'password' => Hash::make($this->password), // Hash untuk sistem login
             'plain_password' => $this->password,       // Simpan mentah untuk dilihat admin pusat
@@ -92,7 +92,7 @@ class AdminManageCashier extends Component
         $admin = Admin::findOrFail($id);
 
         $this->adminId = $admin->id;
-        $this->name = $admin->name;
+        $this->nama_lengkap = $admin->nama_lengkap;
         $this->username = $admin->username;
         $this->pin = $admin->pin;
         $this->password = ''; // Kosongkan password saat edit (biar user isi kalau mau ganti aja)
@@ -109,7 +109,7 @@ class AdminManageCashier extends Component
         $admin = Admin::findOrFail($this->adminId);
 
         $data = [
-            'name' => $this->name,
+            'nama_lengkap' => $this->nama_lengkap,
             'username' => $this->username,
             'pin' => $this->pin,
         ];
@@ -151,7 +151,7 @@ class AdminManageCashier extends Component
 
     public function resetInput()
     {
-        $this->name = '';
+        $this->nama_lengkap = '';
         $this->username = '';
         $this->password = '';
         $this->pin = '';
@@ -182,6 +182,15 @@ class AdminManageCashier extends Component
             ->get();
 
         $this->dispatch('open-history-modal'); // Nama event disesuaikan agar beda dengan form modal
+    }
+
+    public function save()
+    {
+        if ($this->isEditMode) {
+            $this->update();
+        } else {
+            $this->store();
+        }
     }
 
     #[Layout('components.layouts.admin')]

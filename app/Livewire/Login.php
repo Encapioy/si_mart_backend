@@ -8,24 +8,26 @@ class Login extends Component
 {
     public $username = '';
     public $password = '';
+    public $remember = false;
 
     public function login()
     {
         $this->validate([
             'username' => 'required',
             'password' => 'required',
+            'remember' => 'boolean',
         ]);
 
         $credentials = ['username' => $this->username, 'password' => $this->password];
 
         // 1. Cek Admin
-        if (Auth::guard('admin')->attempt($credentials)) {
+        if (Auth::guard('admin')->attempt($credentials, $this->remember)) {
             session()->regenerate();
             return redirect()->route('admin.dashboard');
         }
 
         // 2. Cek User Web
-        if (Auth::guard('web')->attempt($credentials)) {
+        if (Auth::guard('web')->attempt($credentials, $this->remember)) {
             session()->regenerate();
             return redirect()->route('dashboard');
         }

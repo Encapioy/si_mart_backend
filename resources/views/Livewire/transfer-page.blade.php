@@ -12,33 +12,35 @@
         </div>
     </div>
 
-    <form wire:submit.prevent="processTransfer" x-data="{ isProcessing: false }"
-      @submit="isProcessing = true" class="flex-1 flex flex-col">
+    <form wire:submit.prevent="processTransfer"
+    x-data="{
+          isProcessing: false,
+          nominal: @entangle('amount'), // Sambungkan ke Livewire
 
-        <div class="flex flex-col items-center justify-center mt-6" x-data="{
-                nominal: @entangle('amount'), // Pastikan properti di Livewire namanya $amount
+          // Logic Format Rupiah
+          formatRupiah(angka) {
+              if (!angka) return '';
+              return angka.toString().replace(/[^0-9]/g, '').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+          },
 
-                formatRupiah(angka) {
-                    if (!angka) return '';
-                    return angka.toString().replace(/[^0-9]/g, '').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-                },
+          // Logic Saat Ngetik
+          handleInput(e) {
+              let rawValue = e.target.value.replace(/\./g, '');
+              this.nominal = rawValue;
+              e.target.value = this.formatRupiah(rawValue);
+          },
 
-                handleInput(e) {
-                    // 1. Ambil angka murni
-                    let rawValue = e.target.value.replace(/\./g, '');
-                    // 2. Kirim ke Livewire
-                    this.nominal = rawValue;
-                    // 3. Update tampilan dengan titik
-                    e.target.value = this.formatRupiah(rawValue);
-                },
+          // Logic Init (Load data awal)
+          init() {
+              if(this.nominal) {
+                  $refs.inputField.value = this.formatRupiah(this.nominal);
+              }
+          }
+      }"
+      {{-- Saat form di-submit, kunci tombol --}}
+      @submit="isProcessing = true">
 
-                init() {
-                    if(this.nominal) {
-                        $refs.inputField.value = this.formatRupiah(this.nominal);
-                    }
-                }
-             }">
-
+        <div class="flex flex-col items-center justify-center mt-6">
             <label class="text-slate-400 text-xs font-bold tracking-widest mb-4">MAU KIRIM BERAPA?</label>
 
             <div class="flex items-center justify-center w-full relative">
@@ -69,7 +71,7 @@
                 @enderror
             </div>
 
-            <button type="button" {{-- 1. Matikan tombol jika sedang processing (Alpine) atau Loading (Livewire) --}}
+            <button type="submit" {{-- 1. Matikan tombol jika sedang processing (Alpine) atau Loading (Livewire) --}}
                 x-bind:disabled="isProcessing" wire:loading.attr="disabled" {{-- 2. Trigger Submit Manual (Biar aman) --}}
                 x-on:click="$dispatch('submit')" class="w-full bg-blue-600 text-white font-bold py-4 rounded-xl transition shadow-lg shadow-blue-500/20 active:scale-[0.98]
                                disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-blue-400">
@@ -102,18 +104,16 @@
         {{-- Jika validasi gagal (misal PIN salah), tombol harus bisa dipencet lagi --}}
         @script
         <script>
+            // Tangkap jika request Livewire selesai tapi gagal (misal validasi error)
             Livewire.hook('request', ({ fail }) => {
                 fail(({ status, content, preventDefault }) => {
-                    // Jika error, kembalikan tombol ke keadaan semula
-                    document.querySelector('[x-data]').__x.$data.isProcessing = false;
+                    // Cari elemen x-data utama dan reset isProcessing
+                    // Kita gunakan querySelector pada form ini
+                    let formEl = document.querySelector('[x-data*="isProcessing"]');
+                    if (formEl) {
+                        formEl.__x.$data.isProcessing = false;
+                    }
                 })
-            });
-
-            // Alternatif: Tangkap event error validasi dari backend
-            Livewire.on('validation-failed', () => {
-                // Cari elemen x-data terdekat dan reset statenya
-                let el = document.querySelector('[x-data="{ isProcessing: false }"]');
-                if (el) el.__x.$data.isProcessing = false;
             });
         </script>
         @endscript

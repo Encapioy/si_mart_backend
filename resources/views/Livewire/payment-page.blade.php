@@ -12,39 +12,35 @@
         </div>
     </div>
 
-    <form wire:submit.prevent="processPayment" x-data="{ isProcessing: false }"
-      @submit="isProcessing = true" class="flex-1 flex flex-col">
+    <form wire:submit.prevent="processPayment"
+    x-data="{
+              isProcessing: false,
+              nominal: @entangle('amount'), // Sambungkan ke Livewire $amount
 
-        <div class="flex-1 flex flex-col items-center justify-center" x-data="{
-                // Hubungkan variabel Alpine 'nominal' dengan Livewire 'amount'
-                nominal: @entangle('amount'),
+              // Logic Format Rupiah
+              formatRupiah(angka) {
+                  if (!angka) return '';
+                  return angka.toString().replace(/[^0-9]/g, '').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+              },
 
-                // Fungsi Format Rupiah (Visual)
-                formatRupiah(angka) {
-                    if (!angka) return '';
-                    // Hapus karakter selain angka, lalu beri titik
-                    return angka.toString().replace(/[^0-9]/g, '').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-                },
+              // Logic Saat Ngetik
+              handleInput(e) {
+                  let rawValue = e.target.value.replace(/\./g, '');
+                  this.nominal = rawValue;
+                  e.target.value = this.formatRupiah(rawValue);
+              },
 
-                // Fungsi saat mengetik
-                handleInput(e) {
-                    // 1. Ambil angka murni (buang titik)
-                    let rawValue = e.target.value.replace(/\./g, '');
+              // Logic Init (Load data awal)
+              init() {
+                  if(this.nominal) {
+                      $refs.inputField.value = this.formatRupiah(this.nominal);
+                  }
+              }
+          }"
+          {{-- Saat form submit, kunci tombol --}}
+          @submit="isProcessing = true">
 
-                    // 2. Kirim angka murni ke Livewire (Backend)
-                    this.nominal = rawValue;
-
-                    // 3. Update tampilan di input box agar ada titiknya
-                    e.target.value = this.formatRupiah(rawValue);
-                },
-
-                // Saat halaman dimuat, format nilai awal jika ada (misal dari edit/old input)
-                init() {
-                    if(this.nominal) {
-                        $refs.inputField.value = this.formatRupiah(this.nominal);
-                    }
-                }
-             }">
+        <div class="flex-1 flex flex-col items-center justify-center">
 
             <p class="text-slate-400 text-xs font-bold tracking-widest mb-4">MASUKKAN NOMINAL</p>
 
@@ -106,24 +102,17 @@
             </a>
         </div>
 
-        {{-- SCRIPT RESET (PENTING) --}}
-        {{-- Jika user salah PIN, tombol harus hidup lagi --}}
+        {{-- SCRIPT ERROR HANDLING (Reset Tombol jika Gagal) --}}
         @script
         <script>
-            // Tangkap event jika validasi gagal / error dari backend
             Livewire.hook('request', ({ fail }) => {
                 fail(({ status, content, preventDefault }) => {
-                    // Cari elemen Alpine dan matikan status processing
-                    // Agar user bisa input PIN ulang dan tekan tombol lagi
-                    let el = document.querySelector('[x-data]').__x.$data;
-                    if (el) el.isProcessing = false;
+                    // Reset tombol jika ada error (misal PIN salah)
+                    let formEl = document.querySelector('[x-data*="isProcessing"]');
+                    if (formEl) {
+                        formEl.__x.$data.isProcessing = false;
+                    }
                 })
-            });
-
-            // Alternatif jika kamu pakai $dispatch('validation-error') dari PHP
-            Livewire.on('validation-failed', () => {
-                let el = document.querySelector('[x-data]').__x.$data;
-                if (el) el.isProcessing = false;
             });
         </script>
         @endscript

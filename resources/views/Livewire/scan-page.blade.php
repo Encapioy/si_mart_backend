@@ -37,17 +37,9 @@
     </div>
 
     {{-- OVERLAY UI --}}
-    <div class="absolute w-full flex flex-col items-center pointer-events-none bottom-10 z-40 gap-4">
+    <div class="absolute w-full flex flex-col items-center justify-center bottom-20 pointer-events-none z-40">
 
-        {{-- Frame Kotak (Visual Guide) --}}
-        <div class="w-64 h-64 border-2 border-white/30 rounded-3xl relative mb-4">
-            <div class="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-emerald-500 rounded-tl-xl -mt-1 -ml-1"></div>
-            <div class="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-emerald-500 rounded-tr-xl -mt-1 -mr-1"></div>
-            <div class="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-emerald-500 rounded-bl-xl -mb-1 -ml-1"></div>
-            <div class="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-emerald-500 rounded-br-xl -mb-1 -mr-1"></div>
-        </div>
-
-        <span class="px-4 py-2 text-xs font-medium text-white border rounded-full bg-black/60 backdrop-blur-md border-white/10 shadow-xl">
+        <span class="mt-10 px-4 py-2 text-xs font-medium text-white border rounded-full bg-black/60 backdrop-blur-md border-white/10 shadow-xl">
             Arahkan ke QR Code
         </span>
 
@@ -216,6 +208,17 @@
             width: 100% !important;
             height: 100% !important;
             object-fit: cover !important; /* Kunci agar full screen */
+        }
+
+        /* Animasi Garis Scan (Tambahan) */
+        @keyframes scan-move {
+            0%, 100% { top: 5%; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            50% { top: 95%; }
+        }
+        .animate-scan {
+            animation: scan-move 2s infinite linear;
         }
     </style>
 </div>

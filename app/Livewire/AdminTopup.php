@@ -9,6 +9,7 @@ use App\Models\TopUp;
 use App\Models\BalanceMutation;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Layout;
+use App\Services\NotificationService;
 
 class AdminTopup extends Component
 {
@@ -162,6 +163,15 @@ class AdminTopup extends Component
                 'description' => 'Setoran Tunai via Kasir ' . explode(' ', $kasir->username)[0],
                 'related_user_id' => $kasir->id
             ]);
+
+            // D. BUAT NOTIFIKASI
+            NotificationService::send(
+                $user->id,
+                'Top Up Berhasil',
+                'Saldo senilai Rp ' . number_format($this->amount, 0, ',', '.') . ' berhasil ditambahkan oleh Kasir.',
+                'topup',
+                ['amount' => $this->amount, 'admin_id' => $kasir->id]
+            );
 
             DB::commit();
 

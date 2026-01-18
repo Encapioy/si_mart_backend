@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use App\Services\NotificationService;
 
 class TransactionController extends Controller
 {
@@ -69,6 +70,9 @@ class TransactionController extends Controller
 
                     // --- LOGIKA BAGI HASIL (UPDATE 15%) ---
                     if ($product->seller) {
+
+                        $pendapatanBersih = 0;
+                        
                         if ($product->store_id == null) {
                             // KASUS SIMART (Titipan): Potongan 15%
                             $totalPotongan = $subtotal * 0.15;
@@ -108,6 +112,21 @@ class TransactionController extends Controller
                             $product->seller->saldo += $subtotal;
                             $product->seller->save();
                         }
+
+                        // ==========================================
+                        // 1. NOTIFIKASI KE PENJUAL (Per Produk)
+                        // ==========================================
+                        NotificationService::send(
+                            $product->seller->id,
+                            'Produk Terjual',
+                            "{$item['qty']}x {$product->nama_produk} terjual. Pendapatan bersih: Rp " . number_format($pendapatanBersih, 0, ',', '.'),
+                            'transaction',
+                            [
+                                'product_id' => $product->id,
+                                'qty' => $item['qty'],
+                                'income' => $pendapatanBersih
+                            ]
+                        );
                     }
 
                     // Kurangi Stok
@@ -132,6 +151,21 @@ class TransactionController extends Controller
 
                 $transaction->total_bayar = $total_bayar;
                 $transaction->save();
+
+                // ==========================================
+                // 2. NOTIFIKASI KE PEMBELI (User)
+                // ==========================================
+                NotificationService::send(
+                    $user->id,
+                    'Pembayaran Berhasil',
+                    'Pembayaran belanja sebesar Rp ' . number_format($total_bayar, 0, ',', '.') . ' berhasil.',
+                    'transaction',
+                    [
+                        'transaction_id' => $transaction->id,
+                        'total_bayar' => $total_bayar,
+                        'trx_code' => $trxCode
+                    ]
+                );
 
                 return response()->json([
                     'message' => 'Transaksi Berhasil (Metode Scan Kartu)!',

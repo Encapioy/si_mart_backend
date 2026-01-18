@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\MerchantDashboardController;
 use App\Http\Controllers\Api\Admin\MerchantVerificationController;
 use App\Http\Controllers\Api\UserDashboardController;
 use App\Http\Controllers\Api\HistoryController;
+use App\Http\Controllers\Api\NotificationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -57,6 +58,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/users/validate-pin', [UserController::class, 'validatePin']);
     Route::post('/users/lookup', [UserController::class, 'getUserPublicInfo']); // Cari user lain
     Route::get('/history', [HistoryController::class, 'index']); // History umum
+
+    // Route Notifikasi
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
 
     // --- B. DASHBOARD & FAMILY ---
     Route::get('/home', [UserDashboardController::class, 'home']);

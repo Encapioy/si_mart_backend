@@ -12,20 +12,51 @@
         </div>
     </div>
 
-    <form wire:submit.prevent="processPayment" class="flex-1 flex flex-col">
+    <form wire:submit.prevent="processPayment" x-data="{ isProcessing: false }"
+      @submit="isProcessing = true" class="flex-1 flex flex-col">
 
-        <div class="flex-1 flex flex-col items-center justify-center">
+        <div class="flex-1 flex flex-col items-center justify-center" x-data="{
+                // Hubungkan variabel Alpine 'nominal' dengan Livewire 'amount'
+                nominal: @entangle('amount'),
+
+                // Fungsi Format Rupiah (Visual)
+                formatRupiah(angka) {
+                    if (!angka) return '';
+                    // Hapus karakter selain angka, lalu beri titik
+                    return angka.toString().replace(/[^0-9]/g, '').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+                },
+
+                // Fungsi saat mengetik
+                handleInput(e) {
+                    // 1. Ambil angka murni (buang titik)
+                    let rawValue = e.target.value.replace(/\./g, '');
+
+                    // 2. Kirim angka murni ke Livewire (Backend)
+                    this.nominal = rawValue;
+
+                    // 3. Update tampilan di input box agar ada titiknya
+                    e.target.value = this.formatRupiah(rawValue);
+                },
+
+                // Saat halaman dimuat, format nilai awal jika ada (misal dari edit/old input)
+                init() {
+                    if(this.nominal) {
+                        $refs.inputField.value = this.formatRupiah(this.nominal);
+                    }
+                }
+             }">
+
             <p class="text-slate-400 text-xs font-bold tracking-widest mb-4">MASUKKAN NOMINAL</p>
 
             <div class="flex items-center justify-center w-full relative">
-                <span class="text-3xl font-bold text-slate-300 absolute left-8 md:left-auto md:-ml-32 pointer-events-none">Rp</span>
+                <span
+                    class="text-3xl font-bold text-slate-300 absolute left-8 md:left-auto md:-ml-32 pointer-events-none">Rp</span>
 
-                <input wire:model="amount"
-                       type="number"
-                       inputmode="numeric"
-                       autofocus
-                       class="bg-transparent text-5xl font-bold w-full text-center outline-none placeholder-slate-200 text-slate-800 no-spin pl-8 md:pl-0"
-                       placeholder="0">
+                {{-- PERUBAHAN DI SINI --}}
+                <input x-ref="inputField" @input="handleInput" type="text" inputmode="numeric" autofocus
+                    class="bg-transparent text-5xl font-bold w-full text-center outline-none placeholder-slate-200 text-slate-800 no-spin pl-8 md:pl-0"
+                    placeholder="0">
+                {{-- Hapus wire:model di input karena sudah dihandle Alpine via @entangle --}}
             </div>
 
             @error('amount')
@@ -38,31 +69,32 @@
         <div class="mt-auto space-y-4 pb-4">
 
             <div class="relative">
-                <input wire:model="note" type="text"
-                    class="w-full bg-white border border-slate-200 rounded-xl px-4 py-4 text-sm text-slate-800 outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition placeholder-slate-400 shadow-sm"
-                    placeholder="Catatan (Opsional)...">
-            </div>
-
-            <div class="relative">
                 <input wire:model="pin" type="password" inputmode="numeric" maxlength="6"
                     class="w-full bg-white border border-slate-200 rounded-xl px-4 py-4 text-sm text-slate-800 outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition text-center font-bold placeholder-slate-300 shadow-sm"
-                    placeholder="MASUKAN PIN">
+                    placeholder="MASUKAN PIN(6 DIGIT)">
                 @error('pin')
                     <span class="text-red-500 text-xs text-center block mt-2 font-medium">{{ $message }}</span>
                 @enderror
             </div>
 
-            <button type="submit"
-                wire:loading.attr="disabled"
-                wire:target="processPayment"
-                class="w-full bg-green-500 text-white font-bold py-4 rounded-xl hover:bg-green-600 transition shadow-lg shadow-green-500/20 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed">
+            <button type="submit" {{-- 1. Kunci tombol INSTAN saat diklik (Alpine) --}} x-bind:disabled="isProcessing" {{-- 2. Kunci
+                tombol saat Livewire bekerja (Network) --}} wire:loading.attr="disabled" wire:target="processPayment" class="w-full bg-green-500 text-white font-bold py-4 rounded-xl hover:bg-green-600 transition shadow-lg shadow-green-500/20 active:scale-[0.98]
+                               disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-green-400">
 
-                <span wire:loading.remove wire:target="processPayment">BAYAR SEKARANG</span>
+                {{-- TAMPILAN NORMAL (Muncul jika TIDAK processing) --}}
+                <span x-show="!isProcessing" wire:loading.remove wire:target="processPayment">
+                    BAYAR SEKARANG
+                </span>
 
-                <span wire:loading wire:target="processPayment" class="flex items-center justify-center gap-2">
+                {{-- TAMPILAN LOADING (Muncul jika processing) --}}
+                {{-- Kita tambah style="display:none" agar tidak berkedip saat load --}}
+                <span x-show="isProcessing" wire:loading.flex wire:target="processPayment"
+                    class="flex items-center justify-center gap-2" style="display: none;">
                     <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        <path class="opacity-75" fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                        </path>
                     </svg>
                     MEMPROSES...
                 </span>
@@ -73,6 +105,28 @@
                 BATALKAN TRANSAKSI
             </a>
         </div>
+
+        {{-- SCRIPT RESET (PENTING) --}}
+        {{-- Jika user salah PIN, tombol harus hidup lagi --}}
+        @script
+        <script>
+            // Tangkap event jika validasi gagal / error dari backend
+            Livewire.hook('request', ({ fail }) => {
+                fail(({ status, content, preventDefault }) => {
+                    // Cari elemen Alpine dan matikan status processing
+                    // Agar user bisa input PIN ulang dan tekan tombol lagi
+                    let el = document.querySelector('[x-data]').__x.$data;
+                    if (el) el.isProcessing = false;
+                })
+            });
+
+            // Alternatif jika kamu pakai $dispatch('validation-error') dari PHP
+            Livewire.on('validation-failed', () => {
+                let el = document.querySelector('[x-data]').__x.$data;
+                if (el) el.isProcessing = false;
+            });
+        </script>
+        @endscript
     </form>
 
     <style>

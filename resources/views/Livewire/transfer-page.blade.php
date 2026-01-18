@@ -12,20 +12,43 @@
         </div>
     </div>
 
-    <form wire:submit.prevent="processTransfer" class="flex-1 flex flex-col">
+    <form wire:submit.prevent="processTransfer" x-data="{ isProcessing: false }"
+      @submit="isProcessing = true" class="flex-1 flex flex-col">
 
-        <div class="flex-1 flex flex-col items-center justify-center">
-            <p class="text-slate-400 text-xs font-bold tracking-widest mb-4">MASUKKAN NOMINAL</p>
+        <div class="flex flex-col items-center justify-center mt-6" x-data="{
+                nominal: @entangle('amount'), // Pastikan properti di Livewire namanya $amount
+
+                formatRupiah(angka) {
+                    if (!angka) return '';
+                    return angka.toString().replace(/[^0-9]/g, '').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+                },
+
+                handleInput(e) {
+                    // 1. Ambil angka murni
+                    let rawValue = e.target.value.replace(/\./g, '');
+                    // 2. Kirim ke Livewire
+                    this.nominal = rawValue;
+                    // 3. Update tampilan dengan titik
+                    e.target.value = this.formatRupiah(rawValue);
+                },
+
+                init() {
+                    if(this.nominal) {
+                        $refs.inputField.value = this.formatRupiah(this.nominal);
+                    }
+                }
+             }">
+
+            <label class="text-slate-400 text-xs font-bold tracking-widest mb-4">MAU KIRIM BERAPA?</label>
 
             <div class="flex items-center justify-center w-full relative">
-                <span class="text-3xl font-bold text-slate-300 absolute left-8 md:left-auto md:-ml-32 pointer-events-none">Rp</span>
+                <span
+                    class="text-3xl font-bold text-slate-300 absolute left-8 md:left-auto md:-ml-32 pointer-events-none">Rp</span>
 
-                <input wire:model="amount"
-                       type="number"
-                       inputmode="numeric"
-                       autofocus
-                       class="bg-transparent text-5xl font-bold w-full text-center outline-none placeholder-slate-200 text-slate-800 no-spin pl-8 md:pl-0"
-                       placeholder="0">
+                {{-- INPUT NOMINAL --}}
+                <input x-ref="inputField" @input="handleInput" type="text" inputmode="numeric" autofocus
+                    class="bg-transparent text-5xl font-bold w-full text-center outline-none placeholder-slate-200 text-slate-800 no-spin pl-8 md:pl-0"
+                    placeholder="0">
             </div>
 
             @error('amount')
@@ -38,31 +61,32 @@
         <div class="mt-auto space-y-4 pb-4">
 
             <div class="relative">
-                <input wire:model="note" type="text"
-                    class="w-full bg-white border border-slate-200 rounded-xl px-4 py-4 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition placeholder-slate-400 shadow-sm"
-                    placeholder="Catatan transfer (Opsional)...">
-            </div>
-
-            <div class="relative">
                 <input wire:model="pin" type="password" inputmode="numeric" maxlength="6"
                     class="w-full bg-white border border-slate-200 rounded-xl px-4 py-4 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition text-center font-bold placeholder-slate-300 shadow-sm"
-                    placeholder="MASUKAN PIN">
+                    placeholder="MASUKAN PIN(6 DIGIT)">
                 @error('pin')
                     <span class="text-red-500 text-xs text-center block mt-2 font-medium">{{ $message }}</span>
                 @enderror
             </div>
 
-            <button type="submit"
-                wire:loading.attr="disabled"
-                wire:target="processTransfer"
-                class="w-full bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-500/20 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed">
+            <button type="button" {{-- 1. Matikan tombol jika sedang processing (Alpine) atau Loading (Livewire) --}}
+                x-bind:disabled="isProcessing" wire:loading.attr="disabled" {{-- 2. Trigger Submit Manual (Biar aman) --}}
+                x-on:click="$dispatch('submit')" class="w-full bg-blue-600 text-white font-bold py-4 rounded-xl transition shadow-lg shadow-blue-500/20 active:scale-[0.98]
+                               disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-blue-400">
 
-                <span wire:loading.remove wire:target="processTransfer">KIRIM UANG SEKARANG</span>
+                {{-- STATE NORMAL (Muncul jika TIDAK processing) --}}
+                <span x-show="!isProcessing" wire:loading.remove target="processTransfer">
+                    KIRIM UANG SEKARANG
+                </span>
 
-                <span wire:loading wire:target="processTransfer" class="flex items-center justify-center gap-2">
+                {{-- STATE LOADING (Muncul jika processing) --}}
+                <span x-show="isProcessing" wire:loading.flex target="processTransfer"
+                    class="flex items-center justify-center gap-2" style="display: none;">
                     <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        <path class="opacity-75" fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                        </path>
                     </svg>
                     MEMPROSES...
                 </span>
@@ -73,6 +97,26 @@
                 BATALKAN TRANSAKSI
             </a>
         </div>
+
+        {{-- HANDLING ERROR (PENTING) --}}
+        {{-- Jika validasi gagal (misal PIN salah), tombol harus bisa dipencet lagi --}}
+        @script
+        <script>
+            Livewire.hook('request', ({ fail }) => {
+                fail(({ status, content, preventDefault }) => {
+                    // Jika error, kembalikan tombol ke keadaan semula
+                    document.querySelector('[x-data]').__x.$data.isProcessing = false;
+                })
+            });
+
+            // Alternatif: Tangkap event error validasi dari backend
+            Livewire.on('validation-failed', () => {
+                // Cari elemen x-data terdekat dan reset statenya
+                let el = document.querySelector('[x-data="{ isProcessing: false }"]');
+                if (el) el.__x.$data.isProcessing = false;
+            });
+        </script>
+        @endscript
     </form>
 
     <style>

@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Services\NotificationService;
 use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -29,34 +30,59 @@ class PaymentPage extends Component
         }
     }
 
+    public function updatedAmount($value)
+    {
+        // Pastikan amount selalu bersih dari titik jika user copy-paste
+        if ($value) {
+            $this->amount = str_replace('.', '', $value);
+        }
+    }
+
     public function processPayment()
     {
-        // 1. Validasi
+        // 1. CEK DUPLIKAT (PENTING UNTUK MENCEGAH DOUBLE PAYMENT)
+        // Cek apakah user ini baru saja membayar ke toko yang sama dengan nominal sama dalam 10 detik terakhir
+        $lastTrx = Transaction::where('user_id', Auth::id())
+            ->where('store_id', $this->store->id)
+            ->where('total_bayar', $this->amount)
+            ->where('created_at', '>=', now()->subSeconds(10))
+            ->first();
+
+        if ($lastTrx) {
+            // Jika terdeteksi duplikat, langsung lempar ke halaman sukses transaksi sebelumnya
+            return redirect()->route('payment.success', ['code' => $lastTrx->transaction_code]);
+        }
+
+        $this->amount = str_replace('.', '', $this->amount);
+
+        // 2. Validasi Input
         $this->validate([
-            'amount' => 'required|numeric|min:500',
+            'amount' => 'required|numeric|min:1000',
             'pin' => 'required',
         ]);
 
         $user = Auth::user();
 
+        // Fraud Check
         if ($this->store->user_id == $user->id) {
             $this->addError('amount', 'Fraud detected: Tidak bisa bayar ke toko sendiri.');
             return;
         }
 
-        // 2. Cek PIN (Plain Text)
-        if ($this->pin != $user->pin) {
+        // 3. Cek PIN (Plain Text sesuai request)
+        if ((string) $this->pin !== (string) $user->pin) {
             $this->addError('pin', 'PIN Salah!');
             return;
         }
 
-        // 3. Cek Saldo
+        // 4. Cek Saldo
         if ($user->saldo < $this->amount) {
             $this->addError('amount', 'Saldo tidak cukup!');
             return;
         }
 
-        // 4. Eksekusi Database (Pakai Transaction biar aman)
+        // 5. Eksekusi Database (Transaction)
+        // Kita tampung hasilnya di variabel $transaction
         $transaction = DB::transaction(function () use ($user) {
 
             // A. Kurangi Saldo Pembeli
@@ -66,25 +92,23 @@ class PaymentPage extends Component
             // B. Tambah Saldo Merchant
             $merchant = User::find($this->store->user_id);
             if ($merchant) {
-                $merchant->merchant_balance += $this->amount;
+                $merchant->merchant_balance += $this->amount; // Asumsi ada kolom ini
                 $merchant->save();
             }
 
-            // C. Catat Struk
-            // PERBAIKAN: Return object transaksi ini agar bisa dipakai di luar
+            // C. Catat Transaksi
             $newTrx = Transaction::create([
                 'transaction_code' => 'TRX-' . time() . rand(100, 999),
                 'user_id' => $user->id,
                 'total_bayar' => $this->amount,
                 'status' => 'paid',
                 'tanggal_transaksi' => now(),
-                'expired_at' => null,
                 'type' => 'payment',
                 'description' => 'Pembayaran ke ' . $this->store->nama_toko . ($this->note ? " ({$this->note})" : ''),
-                'store_id' => $this->store->id, // PERBAIKAN: Wajib diisi agar muncul di history toko
+                'store_id' => $this->store->id,
             ]);
 
-            // D. Catat Mutasi Pembeli
+            // D. Catat Mutasi Pembeli (Uang Keluar)
             BalanceMutation::create([
                 'user_id' => $user->id,
                 'type' => 'debit',
@@ -95,7 +119,7 @@ class PaymentPage extends Component
                 'related_user_id' => $merchant ? $merchant->id : null
             ]);
 
-            // E. Catat Mutasi Penjual
+            // E. Catat Mutasi Penjual (Uang Masuk)
             if ($merchant) {
                 BalanceMutation::create([
                     'user_id' => $merchant->id,
@@ -108,15 +132,42 @@ class PaymentPage extends Component
                 ]);
             }
 
-            // PENTING: Return objek agar keluar dari scope transaction
             return $newTrx;
         });
 
-        // Feedback Sukses
-        session()->flash('success', 'Pembayaran Berhasil sebesar Rp ' . number_format($this->amount));
+        // 6. KIRIM NOTIFIKASI (Jika Transaksi Sukses)
+        if ($transaction) {
+            $formattedAmount = number_format($this->amount, 0, ',', '.');
 
-        // PERBAIKAN 2: Masukkan parameter code untuk redirect
-        // Asumsi nama kolom di DB adalah 'transaction_code'
+            // A. Notif ke PEMBELI
+            NotificationService::send(
+                $user->id,
+                'Pembayaran Berhasil',
+                "Pembayaran ke {$this->store->nama_toko} sebesar Rp $formattedAmount berhasil.",
+                'transaction',
+                [
+                    'trx_code' => $transaction->transaction_code,
+                    'amount' => $this->amount
+                ]
+            );
+
+            // B. Notif ke MERCHANT (Penjual)
+            $merchant = User::find($this->store->user_id);
+            if ($merchant) {
+                NotificationService::send(
+                    $merchant->id,
+                    'Pembayaran Diterima',
+                    "Diterima Rp $formattedAmount dari {$user->nama_lengkap} di {$this->store->nama_toko}.",
+                    'transaction',
+                    [
+                        'trx_code' => $transaction->transaction_code,
+                        'amount' => $this->amount
+                    ]
+                );
+            }
+        }
+
+        // 7. Redirect ke Halaman Sukses
         return redirect()->route('payment.success', ['code' => $transaction->transaction_code]);
     }
 

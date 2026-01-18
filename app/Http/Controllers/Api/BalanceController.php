@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Services\NotificationService;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\User;
@@ -172,7 +173,7 @@ class BalanceController extends Controller
                 'related_user_id' => $sender->id
             ]);
 
-            Transaction::create([
+            $trx = Transaction::create([
                 'transaction_code' => 'TRF-' . time() . rand(100, 999),
                 'user_id' => $sender->id, // Transaksi milik pengirim
                 'total_bayar' => $request->amount,
@@ -182,13 +183,52 @@ class BalanceController extends Controller
                 'tanggal_transaksi' => now(),
             ]);
 
-            return response()->json([
-                'message' => 'Transfer Berhasil!',
-                'amount' => $request->amount,
-                'sisa_saldo_anda' => $sender->saldo,
-                'penerima' => $receiver->nama_lengkap
-            ]);
+            // Kembalikan data transaksi untuk dipakai notifikasi
+            return $trx;
         });
+
+        // 5. KIRIM NOTIFIKASI (Di luar Transaction biar ringan)
+        // Pastikan transaksi berhasil ($result tidak null)
+        if ($result) {
+            $formattedAmount = number_format($request->amount, 0, ',', '.');
+            $trxId = $result->id; // ID Transaksi dari return DB::transaction
+
+            // A. Notifikasi ke PENGIRIM (Uang Keluar)
+            NotificationService::send(
+                $sender->id,
+                'Transfer Berhasil',
+                "Anda berhasil mengirim Rp $formattedAmount ke {$receiver->nama_lengkap}.",
+                'transaction',
+                [
+                    'transaction_id' => $trxId,
+                    'amount' => $request->amount,
+                    'counterparty' => $receiver->nama_lengkap,
+                    'action' => 'transfer_out'
+                ]
+            );
+
+            // B. Notifikasi ke PENERIMA (Uang Masuk)
+            NotificationService::send(
+                $receiver->id,
+                'Dana Masuk',
+                "Anda menerima Rp $formattedAmount dari {$sender->nama_lengkap}.",
+                'transaction',
+                [
+                    'transaction_id' => $trxId,
+                    'amount' => $request->amount,
+                    'counterparty' => $sender->nama_lengkap,
+                    'action' => 'transfer_in'
+                ]
+            );
+        }
+
+        // 6. RESPONSE JSON
+        return response()->json([
+            'message' => 'Transfer Berhasil!',
+            'amount' => $request->amount,
+            'sisa_saldo_anda' => $sender->saldo,
+            'penerima' => $receiver->nama_lengkap
+        ]);
     }
 
     // 4. GET RECENT TRANSFER USERS (5 Terakhir)

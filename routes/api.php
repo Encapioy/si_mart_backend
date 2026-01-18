@@ -45,7 +45,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // CEK TOKEN
     Route::get('/auth/check-token', function () {
-        return response()->json(['status' => 'success', 'is_valid' => 1]);
+        return response()->json(['status' => 'success', 'is_valid' => true, 'user' => auth()->user()]);
     });
 
     // --- A. USER PROFILE & SECURITY ---

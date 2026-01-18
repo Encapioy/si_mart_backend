@@ -76,6 +76,7 @@ class TransferPage extends Component
         // 4. Cek PIN (Plain Text)
         if ((string) $this->pin !== (string) $sender->pin) {
             $this->addError('pin', 'PIN Salah!');
+            $this->dispatch('validation-failed');
             return;
         }
 

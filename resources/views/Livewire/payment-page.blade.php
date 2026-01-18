@@ -105,12 +105,19 @@
         {{-- SCRIPT ERROR HANDLING (Reset Tombol jika Gagal) --}}
         @script
         <script>
-            Livewire.hook('request', ({ fail }) => {
-                fail(({ status, content, preventDefault }) => {
-                    // Reset tombol jika ada error (misal PIN salah)
+            // Gunakan Hook 'request' dari Livewire
+            Livewire.hook('request', ({ respond }) => {
+                // 'respond' akan jalan setiap kali server selesai memproses (Baik sukses maupun gagal validasi)
+                respond(() => {
+                    // Cari elemen form yang punya data isProcessing
                     let formEl = document.querySelector('[x-data*="isProcessing"]');
+
                     if (formEl) {
-                        formEl.__x.$data.isProcessing = false;
+                        // Buka kunci tombol (Reset jadi false)
+                        // Kita beri jeda sedikit (setTimeout) agar transisi loading terasa natural
+                        setTimeout(() => {
+                            formEl.__x.$data.isProcessing = false;
+                        }, 100);
                     }
                 })
             });

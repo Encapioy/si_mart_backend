@@ -72,6 +72,7 @@ class PaymentPage extends Component
         // 3. Cek PIN (Plain Text sesuai request)
         if ((string) $this->pin !== (string) $user->pin) {
             $this->addError('pin', 'PIN Salah!');
+            $this->dispatch('validation-failed');
             return;
         }
 

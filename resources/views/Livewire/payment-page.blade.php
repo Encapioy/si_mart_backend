@@ -12,7 +12,7 @@
         </div>
     </div>
 
-    <form wire:submit.prevent="processPayment"
+    <form wire:submit.prevent="processPayment" class="flex-1 flex flex-col"
     x-data="{
               isProcessing: false,
               nominal: @entangle('amount'), // Sambungkan ke Livewire $amount

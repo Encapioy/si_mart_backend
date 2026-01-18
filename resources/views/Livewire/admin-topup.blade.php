@@ -170,7 +170,7 @@
                         <span>PROSES SEKARANG</span>
                     </div>
 
-                    <div wire:loading wire:target="triggerConfirm" class="flex items-center justify-center gap-2"
+                    <div wire:loading.class.remove="hidden" wire:target="triggerConfirm" class="hidden flex items-center justify-center gap-2"
                         style="display: none;">
                         <i class="fa-solid fa-circle-notch fa-spin"></i>
                         <span>MEMVERIFIKASI...</span>

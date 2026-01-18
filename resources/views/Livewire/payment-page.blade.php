@@ -12,7 +12,7 @@
         </div>
     </div>
 
-    <form wire:submit.prevent="processPayment" class="flex-1 flex flex-col"
+    <form wire:submit.prevent="isProcessing = true; $wire.processPayment().finally(() => { isProcessing = false })" class="flex-1 flex flex-col"
     x-data="{
               isProcessing: false,
               nominal: @entangle('amount'), // Sambungkan ke Livewire $amount
@@ -36,9 +36,7 @@
                       $refs.inputField.value = this.formatRupiah(this.nominal);
                   }
               }
-          }"
-          {{-- Saat form submit, kunci tombol --}}
-          @submit="isProcessing = true">
+          }">
 
         <div class="flex-1 flex flex-col items-center justify-center">
 
@@ -101,28 +99,6 @@
                 BATALKAN TRANSAKSI
             </a>
         </div>
-
-        {{-- SCRIPT ERROR HANDLING (Reset Tombol jika Gagal) --}}
-        @script
-        <script>
-            // Gunakan Hook 'request' dari Livewire
-            Livewire.hook('request', ({ respond }) => {
-                // 'respond' akan jalan setiap kali server selesai memproses (Baik sukses maupun gagal validasi)
-                respond(() => {
-                    // Cari elemen form yang punya data isProcessing
-                    let formEl = document.querySelector('[x-data*="isProcessing"]');
-
-                    if (formEl) {
-                        // Buka kunci tombol (Reset jadi false)
-                        // Kita beri jeda sedikit (setTimeout) agar transisi loading terasa natural
-                        setTimeout(() => {
-                            formEl.__x.$data.isProcessing = false;
-                        }, 100);
-                    }
-                })
-            });
-        </script>
-        @endscript
     </form>
 
     <style>

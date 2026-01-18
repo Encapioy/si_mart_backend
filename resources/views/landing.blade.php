@@ -13,7 +13,20 @@
             </div>
 
             <div class="space-y-4">
-                <a href="{{ auth()->check() ? route('dashboard') : route('login') }}"
+                @php
+// 1. Set Default ke Login
+$targetUrl = route('login');
+
+// 2. Cek apakah ADMIN yang sedang login?
+if (Auth::guard('admin')->check()) {
+    $targetUrl = route('admin.dashboard');
+}
+// 3. Cek apakah USER BIASA yang sedang login?
+elseif (Auth::guard('web')->check()) {
+    $targetUrl = route('dashboard');
+}
+                @endphp
+                <a href="{{ $targetUrl }}"
                     class="block w-full py-3.5 px-4 bg-slate-900 text-white font-bold rounded-xl shadow-lg hover:bg-black transition">
                     MASUK WEB APP
                 </a>

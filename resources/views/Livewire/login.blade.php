@@ -69,27 +69,6 @@
                 </div>
             </div>
 
-            {{-- Remember Me - Boxed Style --}}
-<div class="mb-8">
-    <label class="relative flex items-center p-3.5 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer hover:bg-slate-100 hover:border-blue-300 transition-all duration-200 group select-none">
-
-        {{-- Checkbox Asli --}}
-        <input wire:model="remember" type="checkbox"
-            class="peer w-5 h-5 text-blue-600 border-2 border-slate-300 rounded focus:ring-blue-500 transition cursor-pointer">
-
-        {{-- Teks Label --}}
-        <div class="ml-3 text-sm">
-            <span class="font-bold text-slate-700 peer-checked:text-blue-600 group-hover:text-blue-600 transition">Ingat Saya</span>
-            <span class="block text-xs text-slate-400 font-medium">Tetap masuk di perangkat ini</span>
-        </div>
-
-        {{-- Indikator Visual (Opsional, icon check muncul di kanan) --}}
-        <div class="absolute right-4 text-blue-500 opacity-0 peer-checked:opacity-100 transition-opacity transform scale-50 peer-checked:scale-100">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-        </div>
-    </label>
-</div>
-
 
             {{-- Submit Button --}}
             <button type="submit"

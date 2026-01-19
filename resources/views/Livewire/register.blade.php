@@ -1,5 +1,5 @@
 <div class="min-h-screen w-full flex items-center justify-center bg-[#F3F4F6] py-10 px-4 font-sans">
-    
+
     {{-- Card Container --}}
     <div class="bg-white p-8 md:p-10 rounded-3xl shadow-2xl w-full max-w-xl border border-white/50 relative overflow-hidden">
 
@@ -170,9 +170,10 @@
                         <div class="relative">
                             <input wire:model.live.debounce.300ms="pin"
                                 :type="showPin ? 'tel' : 'password'"
+                                inputmode="numeric"
                                 maxlength="6"
-                                class="w-full bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-xl focus:ring-2 focus:ring-blue-100 focus:border-blue-500 block w-full pl-4 pr-10 p-3.5 outline-none transition duration-200 text-center tracking-[0.3em] font-bold"
-                                placeholder="******">
+                                class="w-full bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-xl focus:ring-2 focus:ring-blue-100 focus:border-blue-500 block w-full pl-4 pr-10 p-3.5 outline-none transition duration-200 text-center"
+                                placeholder="6 digit">
 
                             {{-- Tombol Mata PIN --}}
                             <button type="button" @click="showPin = !showPin" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 focus:outline-none">
@@ -196,9 +197,10 @@
 
                         <input wire:model.live.debounce.300ms="pin_confirmation"
                             :type="showPin ? 'tel' : 'password'"
+                            inputmode="numeric"
                             maxlength="6"
-                            class="w-full bg-slate-50 border {{ $pinMatchStatus == 'mismatch' ? 'border-red-500 bg-red-50' : ($pinMatchStatus == 'match' ? 'border-green-500 bg-green-50' : 'border-slate-200') }} text-slate-900 text-sm rounded-xl focus:ring-2 focus:ring-blue-100 focus:border-blue-500 block w-full px-4 p-3.5 outline-none transition duration-200 text-center tracking-[0.3em] font-bold"
-                            placeholder="******">
+                            class="w-full bg-slate-50 border {{ $pinMatchStatus == 'mismatch' ? 'border-red-500 bg-red-50' : ($pinMatchStatus == 'match' ? 'border-green-500 bg-green-50' : 'border-slate-200') }} text-slate-900 text-sm rounded-xl focus:ring-2 focus:ring-blue-100 focus:border-blue-500 block w-full px-4 p-3.5 outline-none transition duration-200 text-center"
+                            placeholder="">
                     </div>
                 </div>
                 {{-- Pesan Error Global PIN Confirmation --}}

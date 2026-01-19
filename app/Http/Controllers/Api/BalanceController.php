@@ -10,6 +10,7 @@ use App\Models\Withdrawal;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use App\Models\TopUp;
+use App\Models\Admin;
 use App\Models\Transaction;
 use App\Models\BalanceMutation;
 
@@ -257,5 +258,16 @@ class BalanceController extends Controller
         }
 
         return response()->json(['data' => $users->values()]);
+    }
+
+    // API untuk mengisi Dropdown di HP Dreamland
+    public function getCashierList()
+    {
+        // Ambil ID dan Nama saja, jangan bawa PIN/Password
+        $cashiers = Admin::where('role', 'kasir')
+            ->select('id', 'nama_lengkap', 'username')
+            ->get();
+
+        return response()->json($cashiers);
     }
 }

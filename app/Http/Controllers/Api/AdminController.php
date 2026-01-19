@@ -61,84 +61,127 @@ class AdminController extends Controller
 
     // 3. Top Up Manual (tunai)
     // Admin menerima uang cash -> Tembak saldo user langsung
-    public function manualTopUp(Request $request)
+   public function manualTopUp(Request $request)
     {
-        // 1. Cek Permission (Sesuaikan role kasir kamu)
-        // Biasanya kasir yang login di HP memiliki role 'kasir', 'keuangan', dll
-        $allowedRoles = ['keuangan', 'developer', 'pusat'];
-        if (!in_array($request->admin()->role, $allowedRoles)) {
-            return response()->json(['message' => 'Unauthorized. Role anda tidak memiliki akses TopUp.'], 403);
+        $currentAdmin = $request->admin();
+
+        // 1. Cek Permission (Tambah 'dreamland')
+        $allowedRoles = ['kasir', 'keuangan', 'developer', 'pusat', 'dreamland'];
+
+        if (!in_array($currentAdmin->role, $allowedRoles)) {
+            return response()->json(['message' => 'Unauthorized.'], 403);
         }
 
-        // 2. Validasi Input
-        $validator = Validator::make($request->all(), [
-            'identity_code' => 'required|string', // Bisa No HP, Username, NFC, Member ID
+        // 2. Validasi Dinamis
+        // Kita siapkan rule dasar dulu
+        $rules = [
+            'identity_code' => 'required|string',
             'amount' => 'required|integer|min:1000',
-            'pin' => 'required|string', // PIN Admin/Kasir yang sedang login
-        ]);
+        ];
+
+        // LOGIC KHUSUS DREAMLAND
+        // Jika yang login Dreamland, WAJIB input cashier_id dan cashier_pin
+        if ($currentAdmin->role === 'dreamland') {
+            $rules['cashier_id'] = 'required|exists:admins,id'; // Asumsi tabel admins
+            $rules['cashier_pin'] = 'required|string|size:6';
+        } else {
+            // Jika admin biasa, cukup PIN dia sendiri
+            $rules['pin'] = 'required|string|size:6';
+        }
+
+        $validator = Validator::make($request->all(), $rules);
 
         if ($validator->fails())
             return response()->json($validator->errors(), 400);
 
-        $admin = $request->admin();
+        // 3. TENTUKAN EKSEKUTOR (SIAPA YANG TTD?)
+        $executor = null;
 
-        // 3. CEK PIN ADMIN/KASIR
-        // Pastikan konversi string agar aman ('123456' vs 123456)
-        if ((string) $admin->pin !== (string) $request->pin) {
-            return response()->json(['message' => 'PIN Admin Salah! Transaksi ditolak.'], 401);
+        if ($currentAdmin->role === 'dreamland') {
+            // CASE A: DREAMLAND (Mode Kiosk/Terminal)
+            // Cari Kasir yang dipilih
+            $cashier = Admin::find($request->cashier_id);
+
+            // Validasi 1: Apakah data ada?
+            if (!$cashier) {
+                return response()->json(['message' => 'Data Kasir tidak ditemukan.'], 404);
+            }
+
+            // Validasi 2: [PENTING] Apakah role-nya benar-benar 'kasir'?
+            // Jangan sampai dia memilih ID milik Developer atau Admin Pusat
+            if ($cashier->role !== 'kasir') {
+                return response()->json(['message' => 'ID yang dipilih bukan Kasir!'], 403);
+            }
+
+            // Cek PIN Kasir tersebut
+            if (!$cashier || (string) $cashier->pin !== (string) $request->cashier_pin) {
+                return response()->json(['message' => 'Verifikasi Kasir Gagal! PIN Salah.'], 401);
+            }
+
+            // Eksekutornya adalah Kasir tersebut (Bukan akun Dreamland)
+            $executor = $cashier;
+
+        } else {
+            // CASE B: ADMIN BIASA (Mode Mandiri)
+            // Cek PIN Admin yang sedang login
+            if ((string) $currentAdmin->pin !== (string) $request->pin) {
+                return response()->json(['message' => 'PIN Anda Salah!'], 401);
+            }
+
+            // Eksekutornya adalah Admin yang login
+            $executor = $currentAdmin;
         }
 
-        // 4. Cari User (Logic "Ultimate Search" - Gabungan Web & API)
+        // 4. Cari User Target
         $kode = $request->identity_code;
         $targetUser = User::where('member_id', $kode)
             ->orWhere('username', $kode)
-            ->orWhere('nfc_id', $kode)       // Fitur Khas App (Scan Kartu)
-            ->orWhere('no_hp', $kode)        // Fitur Khas Web (Cari No HP)
-            ->orWhere('email', $kode)        // Fitur Khas Web
+            ->orWhere('nfc_id', $kode)
+            ->orWhere('no_hp', $kode)
             ->first();
 
         if (!$targetUser)
             return response()->json(['message' => 'User tidak ditemukan'], 404);
 
-        // --- MULAI DATABASE TRANSACTION ---
+        // --- MULAI TRANSAKSI ---
         DB::beginTransaction();
         try {
             // A. Update Saldo User
             $targetUser->saldo += $request->amount;
             $targetUser->save();
 
-            // B. Simpan History TopUp
+            // B. Simpan TopUp History
+            // 'admin_id' diisi ID Eksekutor (Kasir Asli), bukan akun Dreamland
             TopUp::create([
                 'user_id' => $targetUser->id,
                 'amount' => $request->amount,
                 'status' => 'approved',
-                'admin_id' => $admin->id,
+                'admin_id' => $executor->id,
                 'bukti_transfer' => 'MANUAL_CASH',
             ]);
 
-            // C. Simpan Mutasi (Buku Tabungan)
-            // Deskripsi disamakan dengan Web: "via Kasir [Nama]"
+            // C. Simpan Mutasi
             BalanceMutation::create([
                 'user_id' => $targetUser->id,
                 'type' => 'credit',
                 'amount' => $request->amount,
                 'current_balance' => $targetUser->saldo,
                 'category' => 'topup',
-                'description' => 'Setoran Tunai via Admin ' . explode(' ', $admin->nama_lengkap)[0],
-                'related_user_id' => $admin->id
+                // Deskripsi mencatat nama kasir asli
+                'description' => 'Setoran Tunai via Kasir ' . explode(' ', $executor->nama_lengkap)[0],
+                'related_user_id' => $executor->id
             ]);
 
-            // D. KIRIM NOTIFIKASI (INI YANG BARU)
-            // Agar user dapat notif "Ting!" di HP mereka
+            // D. Kirim Notifikasi
             NotificationService::send(
                 $targetUser->id,
                 'Top Up Berhasil',
-                'Saldo senilai Rp ' . number_format($request->amount, 0, ',', '.') . ' berhasil ditambahkan oleh Admin.',
+                'Saldo Rp ' . number_format($request->amount, 0, ',', '.') . ' masuk via Kasir ' . $executor->nama_lengkap,
                 'topup',
                 [
                     'amount' => $request->amount,
-                    'admin_id' => $admin->id,
-                    'admin_name' => $admin->nama_lengkap
+                    'admin_id' => $executor->id,
+                    'kiosk_mode' => ($currentAdmin->role === 'dreamland') // Info tambahan buat debug
                 ]
             );
 
@@ -146,6 +189,7 @@ class AdminController extends Controller
 
             return response()->json([
                 'message' => 'Top Up Berhasil',
+                'executor' => $executor->nama_lengkap, // Kirim balik nama kasir buat konfirmasi di app
                 'data' => [
                     'saldo_baru' => $targetUser->saldo,
                     'penerima' => $targetUser->nama_lengkap,
@@ -155,7 +199,7 @@ class AdminController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Gagal memproses Topup: ' . $e->getMessage()], 500);
+            return response()->json(['message' => 'Gagal: ' . $e->getMessage()], 500);
         }
     }
 

@@ -61,9 +61,13 @@ class AdminController extends Controller
 
     // 3. Top Up Manual (tunai)
     // Admin menerima uang cash -> Tembak saldo user langsung
-   public function manualTopUp(Request $request)
+    public function manualTopUp(Request $request)
     {
-        $currentAdmin = $request->admin();
+        // -----------------------------------------------------------
+        // PERBAIKAN UTAMA DI SINI:
+        // Gunakan $request->user(), bukan $request->admin()
+        // -----------------------------------------------------------
+        $currentAdmin = $request->user();
 
         // 1. Cek Permission (Tambah 'dreamland')
         $allowedRoles = ['kasir', 'keuangan', 'developer', 'pusat', 'dreamland'];
@@ -83,10 +87,10 @@ class AdminController extends Controller
         // Jika yang login Dreamland, WAJIB input cashier_id dan cashier_pin
         if ($currentAdmin->role === 'dreamland') {
             $rules['cashier_id'] = 'required|exists:admins,id'; // Asumsi tabel admins
-            $rules['cashier_pin'] = 'required|string|size:6';
+            $rules['cashier_pin'] = 'required|string';
         } else {
             // Jika admin biasa, cukup PIN dia sendiri
-            $rules['pin'] = 'required|string|size:6';
+            $rules['pin'] = 'required|string';
         }
 
         $validator = Validator::make($request->all(), $rules);
@@ -114,7 +118,8 @@ class AdminController extends Controller
             }
 
             // Cek PIN Kasir tersebut
-            if (!$cashier || (string) $cashier->pin !== (string) $request->cashier_pin) {
+            // Kita konversi ke string dulu biar aman perbandingannya
+            if ((string) $cashier->pin !== (string) $request->cashier_pin) {
                 return response()->json(['message' => 'Verifikasi Kasir Gagal! PIN Salah.'], 401);
             }
 

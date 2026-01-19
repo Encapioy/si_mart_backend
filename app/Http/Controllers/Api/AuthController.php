@@ -304,7 +304,7 @@ class AuthController extends Controller
     // 4. CEK PROFIL SAYA
     public function me(Request $request)
     {
-        return new UserResource($request->user());
+        return response()->json($request->user());
     }
 
     // 5. KIRIM OTP KE EMAIL

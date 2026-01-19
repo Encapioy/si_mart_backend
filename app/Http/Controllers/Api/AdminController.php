@@ -693,4 +693,15 @@ class AdminController extends Controller
 
         return response()->json($users);
     }
+
+    // API untuk mengisi Dropdown di HP Dreamland
+    public function getCashierList()
+    {
+        // Ambil ID dan Nama saja, jangan bawa PIN/Password
+        $cashiers = Admin::where('role', 'kasir')
+            ->select('id', 'nama_lengkap', 'username')
+            ->get();
+
+        return response()->json($cashiers);
+    }
 }

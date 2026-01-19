@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Services\NotificationService;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\User;
@@ -12,6 +13,7 @@ use App\Models\Transaction;
 use App\Models\Product;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
+use App\Models\BalanceMutation;
 
 class AdminController extends Controller
 {
@@ -61,75 +63,99 @@ class AdminController extends Controller
     // Admin menerima uang cash -> Tembak saldo user langsung
     public function manualTopUp(Request $request)
     {
-        // Pastikan yang akses adalah Admin Keuangan
-        if (!in_array($request->user()->role, ['keuangan', 'developer', 'pusat'])) {
-            return response()->json(['message' => 'Unauthorized. Hanya Admin Keuangan.'], 403);
+        // 1. Cek Permission (Sesuaikan role kasir kamu)
+        // Biasanya kasir yang login di HP memiliki role 'kasir', 'keuangan', dll
+        $allowedRoles = ['keuangan', 'developer', 'pusat'];
+        if (!in_array($request->admin()->role, $allowedRoles)) {
+            return response()->json(['message' => 'Unauthorized. Role anda tidak memiliki akses TopUp.'], 403);
         }
 
+        // 2. Validasi Input
         $validator = Validator::make($request->all(), [
-            // Bisa pakai Username, NFC, atau Member ID (Pencarian Pintar)
-            'identity_code' => 'required|string',
+            'identity_code' => 'required|string', // Bisa No HP, Username, NFC, Member ID
             'amount' => 'required|integer|min:1000',
-            'pin' => 'required|string|size:6',
+            'pin' => 'required|string', // PIN Admin/Kasir yang sedang login
         ]);
 
         if ($validator->fails())
             return response()->json($validator->errors(), 400);
 
-        // --- CEK PIN ADMIN ---
-        if ($request->user()->pin !== $request->pin) {
+        $admin = $request->admin();
+
+        // 3. CEK PIN ADMIN/KASIR
+        // Pastikan konversi string agar aman ('123456' vs 123456)
+        if ((string) $admin->pin !== (string) $request->pin) {
             return response()->json(['message' => 'PIN Admin Salah! Transaksi ditolak.'], 401);
         }
 
-        // Cari User (Logic Pintar: Username / NFC / Member ID)
+        // 4. Cari User (Logic "Ultimate Search" - Gabungan Web & API)
         $kode = $request->identity_code;
-        $targetUser = User::where('username', $kode)
-            ->orWhere('nfc_id', $kode)
-            ->orWhere('member_id', $kode)
+        $targetUser = User::where('member_id', $kode)
+            ->orWhere('username', $kode)
+            ->orWhere('nfc_id', $kode)       // Fitur Khas App (Scan Kartu)
+            ->orWhere('no_hp', $kode)        // Fitur Khas Web (Cari No HP)
+            ->orWhere('email', $kode)        // Fitur Khas Web
             ->first();
 
         if (!$targetUser)
             return response()->json(['message' => 'User tidak ditemukan'], 404);
 
-        // --- MULAI DATABASE TRANSACTION (WAJIB ADA) ---
+        // --- MULAI DATABASE TRANSACTION ---
         DB::beginTransaction();
         try {
             // A. Update Saldo User
             $targetUser->saldo += $request->amount;
             $targetUser->save();
 
-            // B. Masukkan ke Tabel 'top_ups' (Sesuai request kamu)
+            // B. Simpan History TopUp
             TopUp::create([
                 'user_id' => $targetUser->id,
                 'amount' => $request->amount,
-                'status' => 'approved', // Langsung sukses karena tunai
-                'admin_id' => $request->user()->id,
-                'bukti_transfer' => 'MANUAL_CASH', // Penanda topup manual
-                // pastikan kolom lain di tabel top_ups kamu nullable atau diisi default
+                'status' => 'approved',
+                'admin_id' => $admin->id,
+                'bukti_transfer' => 'MANUAL_CASH',
             ]);
 
-            // C. Masukkan ke 'balance_mutations' (PENTING!)
-            // Ini supaya di aplikasi user, topup ini tetap muncul di "Riwayat Saldo"
-            \App\Models\BalanceMutation::create([
+            // C. Simpan Mutasi (Buku Tabungan)
+            // Deskripsi disamakan dengan Web: "via Kasir [Nama]"
+            BalanceMutation::create([
                 'user_id' => $targetUser->id,
-                'type' => 'credit', // Uang Masuk
+                'type' => 'credit',
                 'amount' => $request->amount,
                 'current_balance' => $targetUser->saldo,
                 'category' => 'topup',
-                'description' => 'Top Up Tunai via Admin',
-                'related_user_id' => $request->user()->id
+                'description' => 'Setoran Tunai via Admin ' . explode(' ', $admin->nama_lengkap)[0],
+                'related_user_id' => $admin->id
             ]);
 
-            DB::commit(); // Simpan permanen
+            // D. KIRIM NOTIFIKASI (INI YANG BARU)
+            // Agar user dapat notif "Ting!" di HP mereka
+            NotificationService::send(
+                $targetUser->id,
+                'Top Up Berhasil',
+                'Saldo senilai Rp ' . number_format($request->amount, 0, ',', '.') . ' berhasil ditambahkan oleh Admin.',
+                'topup',
+                [
+                    'amount' => $request->amount,
+                    'admin_id' => $admin->id,
+                    'admin_name' => $admin->nama_lengkap
+                ]
+            );
+
+            DB::commit();
 
             return response()->json([
                 'message' => 'Top Up Berhasil',
-                'saldo_baru' => $targetUser->saldo
+                'data' => [
+                    'saldo_baru' => $targetUser->saldo,
+                    'penerima' => $targetUser->nama_lengkap,
+                    'formatted_amount' => number_format($request->amount, 0, ',', '.')
+                ]
             ]);
 
         } catch (\Exception $e) {
-            DB::rollBack(); // Batalkan semua jika error
-            return response()->json(['message' => 'Gagal: ' . $e->getMessage()], 500);
+            DB::rollBack();
+            return response()->json(['message' => 'Gagal memproses Topup: ' . $e->getMessage()], 500);
         }
     }
 

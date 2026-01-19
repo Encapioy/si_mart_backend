@@ -124,7 +124,15 @@ class BalanceController extends Controller
 
         // 2. Cek Saldo
         if ($sender->saldo < $request->amount) {
-            return response()->json(['message' => 'Saldo tidak cukup'], 400);
+
+            // LOGIC TAMBAHAN: Cek apakah minus?
+            if ($sender->saldo < 0) {
+                return response()->json([
+                    'message' => 'Akun Anda memiliki tunggakan (Saldo Minus). Silakan Top Up untuk melunasi.'
+                ], 400);
+            }
+
+            return response()->json(['message' => 'Saldo tidak cukup!'], 400);
         }
 
         // 3. Cari Penerima (Update: Tambah pencarian via No HP)

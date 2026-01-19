@@ -13,9 +13,19 @@
                 <span class="text-xs font-medium text-blue-50 tracking-wide uppercase">{{ $user->nama_lengkap }}</span>
             </div>
 
-            <p class="text-blue-200 text-sm mb-1 font-medium">Total Saldo Aktif</p>
-            <h2 class="text-4xl font-extrabold text-white tracking-tight drop-shadow-sm">
-                <span class="text-2xl font-semibold align-top opacity-80">Rp</span>{{ number_format($user->saldo, 0, ',', '.') }}
+            <p class="text-blue-200 text-sm mb-1 font-medium">Total Saldo Saya</p>
+            <h2 class="text-4xl font-bold tracking-tight drop-shadow-sm align-top">
+                @if($user->saldo < 0)
+                    {{-- Jika Minus: Warna Merah --}}
+                    <span class="text-red-600">
+                        - Rp {{ number_format(abs($user->saldo), 0, ',', '.') }}
+                    </span>
+                @else
+                    {{-- Jika Positif: Warna Hitam/Normal --}}
+                    <span class="text-white">
+                        Rp {{ number_format($user->saldo, 0, ',', '.') }}
+                    </span>
+                @endif
             </h2>
         </div>
     </div>

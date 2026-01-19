@@ -72,7 +72,7 @@ class TransactionController extends Controller
                     if ($product->seller) {
 
                         $pendapatanBersih = 0;
-                        
+
                         if ($product->store_id == null) {
                             // KASUS SIMART (Titipan): Potongan 15%
                             $totalPotongan = $subtotal * 0.15;
@@ -143,6 +143,11 @@ class TransactionController extends Controller
 
                 if ($user->saldo < $total_bayar)
                     throw new \Exception("Saldo tidak cukup!");
+
+                if ($user->saldo < 0)
+                    throw new \Exception("Akun Anda memiliki tunggakan (Saldo Minus). Silakan Top Up untuk melunasi.");
+
+
 
                 $user->saldo -= $total_bayar;
                 $user->save();
@@ -270,6 +275,9 @@ class TransactionController extends Controller
             if ($user->saldo < $transaction->total_bayar)
                 throw new \Exception("Saldo tidak cukup!");
 
+            if ($user->saldo < 0)
+                throw new \Exception("Akun Anda memiliki tunggakan (Saldo Minus). Silakan Top Up untuk melunasi.");
+
             $user->saldo -= $transaction->total_bayar;
             $user->save();
 
@@ -374,6 +382,9 @@ class TransactionController extends Controller
 
             if ($user->saldo < $transaction->total_bayar)
                 throw new \Exception("Saldo tidak cukup!");
+
+            if ($user->saldo < 0)
+                throw new \Exception("Akun Anda memiliki tunggakan (Saldo Minus). Silakan Top Up untuk melunasi.");
 
             $user->saldo -= $transaction->total_bayar;
             $user->save();
@@ -551,6 +562,9 @@ class TransactionController extends Controller
         if ($user->saldo < $transaction->total_bayar)
             return response()->json(['message' => 'Saldo tidak cukup'], 400);
 
+        if ($user->saldo < 0)
+            return response()->json(['message' => 'Akun Anda memiliki tunggakan (Saldo Minus). Silakan Top Up untuk melunasi.'], 400);
+
         // 3. Eksekusi Bayar
         return DB::transaction(function () use ($transaction, $user) {
 
@@ -716,8 +730,16 @@ class TransactionController extends Controller
         }
 
         // 3. Cek Saldo User
-        if ($user->balance < $amount) {
-            return response()->json(['message' => 'Saldo tidak cukup.'], 400);
+        if ($user->saldo < $amount) {
+
+            // LOGIC TAMBAHAN: Cek apakah minus?
+            if ($user->saldo < 0) {
+                return response()->json([
+                    'message' => 'Akun Anda memiliki tunggakan (Saldo Minus). Silakan Top Up untuk melunasi.'
+                ], 400);
+            }
+
+            return response()->json(['message' => 'Saldo tidak cukup!'], 400);
         }
 
         // 4. Mulai Transaksi Database (Atomic)
@@ -726,11 +748,11 @@ class TransactionController extends Controller
             $merchant = Merchant::findOrFail($request->merchant_id);
 
             // A. Potong Saldo User
-            $user->balance -= $amount;
+            $user->saldo -= $amount;
             $user->save();
 
             // B. Tambah Saldo Merchant (Masuk ke Wallet Toko, bukan Wallet Pribadi User)
-            $merchant->balance += $amount;
+            $merchant->saldo += $amount;
             $merchant->save();
 
             // C. Catat Riwayat Transaksi
@@ -836,7 +858,15 @@ class TransactionController extends Controller
 
         // 3. CEK SALDO
         if ($user->saldo < $request->amount) {
-            return response()->json(['message' => 'Saldo tidak mencukupi'], 400);
+
+            // LOGIC TAMBAHAN: Cek apakah minus?
+            if ($user->saldo < 0) {
+                return response()->json([
+                    'message' => 'Akun Anda memiliki tunggakan (Saldo Minus). Silakan Top Up untuk melunasi.'
+                ], 400);
+            }
+
+            return response()->json(['message' => 'Saldo tidak cukup!'], 400);
         }
 
         // Cari Toko & Pemilik

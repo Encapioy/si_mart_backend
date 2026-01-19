@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\Admin\MerchantVerificationController;
 use App\Http\Controllers\Api\UserDashboardController;
 use App\Http\Controllers\Api\HistoryController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\CorrectionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -165,6 +166,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/withdrawals', [AdminController::class, 'getPendingWithdrawals']);
         Route::post('/withdrawals/{id}/approve', [AdminController::class, 'approveWithdrawal']);
         Route::put('/withdrawals/{id}/reject', [AdminController::class, 'rejectWithdrawal']);
+        Route::post('/correction/rollback-topup', [CorrectionController::class, 'rollbackTopUp']); // Batal topup
+        Route::post('/correction/rollback-transaction', [CorrectionController::class, 'rollbackTransaction']); // Batal transaksi
 
         // Gudang & Info
         Route::get('/products/missing-rack', [AdminController::class, 'getProductsMissingRack']);

@@ -1,5 +1,5 @@
 <div class="min-h-screen bg-slate-50 p-6 md:p-8">
-    
+
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
             <h1 class="text-2xl font-bold text-slate-800">Riwayat Transaksi</h1>
@@ -28,7 +28,8 @@
                         <th class="px-6 py-4">Pembayar (User)</th>
                         <th class="px-6 py-4">Tipe</th>
                         <th class="px-6 py-4">Tujuan / Deskripsi</th>
-                        <th class="px-6 py-4 text-right">Nominal</th>
+                        <th class="px-6 py-4 text-center">Nominal</th>
+                        <th class="px-6 py-4 text-center">Koreksi</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
@@ -46,9 +47,6 @@
 
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs">
-                                        {{ substr($trx->user->nama_lengkap ?? '?', 0, 1) }}
-                                    </div>
                                     <div>
                                         <div class="font-bold text-slate-700">{{ $trx->user->nama_lengkap ?? 'User Terhapus' }}</div>
                                         <div class="text-xs text-slate-400">{{ $trx->user->member_id ?? '-' }}</div>
@@ -87,6 +85,24 @@
                                 <span class="font-bold text-slate-800">
                                     Rp {{ number_format($trx->total_bayar, 0, ',', '.') }}
                                 </span>
+                            </td>
+
+                            <td class="px-6 py-4 text-center">
+                                <button wire:click="deleteTransaction({{ $item->id }})"
+                                    wire:confirm="Yakin ingin membatalkan TopUp ini? Saldo user akan otomatis berkurang!"
+                                    class="group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 hover:text-red-700 hover:border-red-200 transition-all duration-200 active:scale-95">
+
+                                    {{-- Ikon Trash (Sampah) --}}
+                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                        class="w-3.5 h-3.5 opacity-70 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24"
+                                        stroke="currentColor" stroke-width="2.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+
+                                    {{-- Teks --}}
+                                    <span class="text-xs font-bold tracking-wide">Batal</span>
+                                </button>
                             </td>
 
                         </tr>

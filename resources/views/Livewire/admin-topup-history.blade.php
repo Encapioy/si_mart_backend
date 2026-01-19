@@ -26,6 +26,7 @@
                         <th class="px-6 py-4">Nominal</th>
                         <th class="px-6 py-4">Kasir (Petugas)</th>
                         <th class="px-6 py-4 text-center">Status</th>
+                        <th class="px-6 py-4 text-center">Koreksi</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
@@ -42,9 +43,6 @@
 
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs">
-                                        {{ substr($item->user->nama_lengkap ?? 'U', 0, 1) }}
-                                    </div>
                                     <div>
                                         <div class="font-bold text-slate-700">{{ $item->user->nama_lengkap ?? 'User Terhapus' }}</div>
                                         <div class="text-xs text-slate-400 font-mono">{{ $item->user->member_id ?? '-' }}</div>
@@ -60,10 +58,7 @@
 
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-2">
-                                    <div class="w-6 h-6 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center text-[10px] font-bold">
-                                        {{ substr($item->admin->username ?? 'S', 0, 1) }}
-                                    </div>
-                                    <span class="text-slate-600 font-medium text-sm">
+                                    <span class="text-slate-600 font-bold text-sm">
                                         {{ $item->admin->username ?? 'Sistem' }}
                                     </span>
                                 </div>
@@ -80,6 +75,25 @@
                                     </span>
                                 @endif
                             </td>
+
+                            <td class="px-6 py-4 text-center">
+                                <button wire:click="deleteTopup({{ $item->id }})"
+                                    wire:confirm="Yakin ingin membatalkan TopUp ini? Saldo user akan otomatis berkurang!"
+                                    class="group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 hover:text-red-700 hover:border-red-200 transition-all duration-200 active:scale-95">
+
+                                    {{-- Ikon Trash (Sampah) --}}
+                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                        class="w-3.5 h-3.5 opacity-70 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24"
+                                        stroke="currentColor" stroke-width="2.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+
+                                    {{-- Teks --}}
+                                    <span class="text-xs font-bold tracking-wide">Batal</span>
+                                </button>
+                            </td>
+
                         </tr>
                     @empty
                         <tr>

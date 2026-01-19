@@ -82,6 +82,11 @@ class PaymentPage extends Component
             return;
         }
 
+        if ($user->saldo < $this->amount) {
+            $this->addError('amount', 'Saldo tidak cukup (Anda memiliki tunggakan).');
+            return;
+        }
+
         // 5. Eksekusi Database (Transaction)
         // Kita tampung hasilnya di variabel $transaction
         $transaction = DB::transaction(function () use ($user) {

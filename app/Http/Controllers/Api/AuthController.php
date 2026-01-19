@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Validator;
 use App\Models\UserDevice;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Cache;
+use App\Http\Resources\UserResource;
 
 class AuthController extends Controller
 {
@@ -303,7 +304,7 @@ class AuthController extends Controller
     // 4. CEK PROFIL SAYA
     public function me(Request $request)
     {
-        return response()->json($request->user());
+        return new UserResource($request->user());
     }
 
     // 5. KIRIM OTP KE EMAIL

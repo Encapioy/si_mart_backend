@@ -86,7 +86,7 @@ class TransferPage extends Component
             return;
         }
 
-        if ($user->saldo < $this->amount) {
+        if ($sender->saldo < $this->amount) {
             $this->addError('amount', 'Saldo tidak cukup (Anda memiliki tunggakan).');
             return;
         }

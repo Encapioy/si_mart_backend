@@ -21,15 +21,24 @@ class AdminTopupHistory extends Component
         if (!$topup)
             return;
 
-        // Jangan hapus kalau status pending/failed, langsung delete aja gak usah potong saldo
+        // Jika status bukan approved (misal pending/failed), hapus saja tanpa cek saldo
         if ($topup->status != 'approved') {
             $topup->delete();
             $this->dispatch('show-success', message: 'Data sampah dihapus.');
             return;
         }
 
-        DB::transaction(function () use ($topup) {
-            $user = User::find($topup->user_id);
+        $user = User::find($topup->user_id);
+
+        // --- LOGIC BARU: CEK SALDO USER ---
+        if ($user->saldo < $topup->amount) {
+            // Kirim notif error ke layar admin
+            $this->dispatch('show-error', message: 'GAGAL: Saldo User tidak cukup! Uang TopUp sudah terpakai.');
+            return; // BERHENTI DI SINI
+        }
+
+        // Jika lolos pengecekan, baru eksekusi
+        DB::transaction(function () use ($topup, $user) {
 
             // 1. Tarik Saldo
             $user->saldo -= $topup->amount;
@@ -49,7 +58,7 @@ class AdminTopupHistory extends Component
             $topup->delete();
         });
 
-        $this->dispatch('show-success', message: 'Topup Dibatalkan. Saldo User dikurangi.');
+        $this->dispatch('show-success', message: 'Topup Dibatalkan. Saldo User ditarik kembali.');
     }
 
     #[Layout('components.layouts.admin')]

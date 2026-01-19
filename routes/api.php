@@ -143,7 +143,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/change-pin', [AdminController::class, 'changePin']);
         Route::get('/users', [AdminController::class, 'searchUsers']);
         Route::post('/fix-member-ids', [AdminController::class, 'generateOldMemberIds']);
-        Route::get('/admin/cashiers', [AdminController::class, 'getCashierList']);
+        Route::get('/cashiers', [AdminController::class, 'getCashierList']);
 
         // Verifikasi User
         Route::get('/verifications', [AdminController::class, 'getPendingUsers']);

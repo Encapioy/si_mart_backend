@@ -376,7 +376,12 @@ class TransactionController extends Controller
                     // --- EKSEKUSI DISTRIBUSI DANA ---
 
                     // 1. Ke Pemilik Barang (Masuk Merchant Balance)
-                    $product->seller->merchant_balance += $totalJatahMerchant;
+                    // Cek tipe seller untuk Barang Titipan
+                    if ($product->seller instanceof User) {
+                        $product->seller->merchant_balance += $totalJatahMerchant;
+                    } else {
+                        $product->seller->saldo += $totalJatahMerchant;
+                    }
                     $product->seller->save();
                     // $this->recordMutation($product->seller->id, $totalJatahMerchant, 'credit', 'sale', 'Penjualan: ' . $product->nama_produk);
 
@@ -397,7 +402,15 @@ class TransactionController extends Controller
                 } else {
                     // LOGIKA 2: OFFICIAL STORE / TOKO SENDIRI
                     // Asumsi: Tidak kena potongan 15%, masuk semua ke Merchant Balance
-                    $product->seller->merchant_balance += $subtotal;
+                    if ($product->seller instanceof User) {
+                        // Jika User: Masuk ke Merchant Balance
+                        $product->seller->merchant_balance += $subtotal;
+                    } else {
+                        // Jika Admin: Masuk ke Saldo Biasa (Kas Toko)
+                        // Karena tabel admins tidak punya merchant_balance
+                        $product->seller->saldo += $subtotal;
+                    }
+
                     $product->seller->save();
                     // $this->recordMutation($product->seller->id, $subtotal, 'credit', 'sale', 'Penjualan Official: ' . $product->nama_produk);
                 }

@@ -1,0 +1,183 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use App\Models\Advertisement;
+use App\Models\User;
+use App\Models\BalanceMutation; // Jangan lupa import ini
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
+use Carbon\Carbon;
+
+class AdvertisementController extends Controller
+{
+    // Konstanta Harga dan Durasi
+    const AD_PRICE = 10000;
+    const DURATION_HOURS = 3;
+
+    // ======================================================
+    // 1. PASANG IKLAN BARU (STORE)
+    // ======================================================
+    public function store(Request $request)
+    {
+        $user = $request->user();
+
+        // A. Validasi Input
+        $validator = Validator::make($request->all(), [
+            'store_id' => 'required|exists:stores,id',
+            // Validasi gambar: wajib ada, format gambar, maks 2MB
+            'banner_image' => 'required|image|mimes:jpg,jpeg,png,webp|max:2048',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 400);
+        }
+
+        // B. Cek Saldo Cukup Gak?
+        if ($user->saldo < self::AD_PRICE) {
+            return response()->json(['message' => 'Saldo tidak cukup! Biaya pasang iklan Rp ' . number_format(self::AD_PRICE)], 400);
+        }
+
+        // C. Cek Kepemilikan Toko
+        // Pastikan user mengiklankan tokonya sendiri
+        $store = \App\Models\Store::where('id', $request->store_id)->where('user_id', $user->id)->first();
+        if (!$store) {
+            return response()->json(['message' => 'Toko tidak valid atau bukan milik Anda.'], 403);
+        }
+
+        return DB::transaction(function () use ($request, $user) {
+            // 1. Potong Saldo
+            $user->saldo -= self::AD_PRICE;
+            $user->save();
+
+            // 2. Catat Mutasi (Debit)
+            BalanceMutation::create([
+                'user_id' => $user->id,
+                'type' => 'debit',
+                'amount' => self::AD_PRICE,
+                'current_balance' => $user->saldo,
+                'category' => 'ads', // Kategori baru: Iklan
+                'description' => 'Pasang Iklan Toko (3 Jam)',
+            ]);
+
+            // 3. Upload Gambar
+            $file = $request->file('banner_image');
+            $filename = 'AD-' . uniqid() . '.' . $file->getClientOriginalExtension();
+
+            // Simpan ke folder public/ads
+            Storage::disk('public')->putFileAs('ads', $file, $filename);
+
+            // 4. Buat Data Iklan
+            $ad = Advertisement::create([
+                'user_id' => $user->id,
+                'store_id' => $request->store_id,
+                'banner_image' => $filename,
+                'start_time' => now(),
+                'end_time' => now()->addHours(self::DURATION_HOURS), // 3 Jam dari sekarang
+                'status' => 'active',
+                'is_notified' => false
+            ]);
+
+            return response()->json([
+                'message' => 'Iklan berhasil dipasang! Tayang selama 3 jam.',
+                'data' => $ad,
+                'sisa_saldo' => $user->saldo
+            ], 201);
+        });
+    }
+
+    // ======================================================
+    // 2. PERPANJANG IKLAN (RENEW)
+    // ======================================================
+    public function renew(Request $request, $id)
+    {
+        $user = $request->user();
+        $ad = Advertisement::find($id);
+
+        // Validasi
+        if (!$ad) {
+            return response()->json(['message' => 'Iklan tidak ditemukan'], 404);
+        }
+        if ($ad->user_id !== $user->id) {
+            return response()->json(['message' => 'Ini bukan iklan Anda!'], 403);
+        }
+
+        // Iklan cuma bisa diperbarui kalau statusnya Active atau Grace Period
+        // Kalau sudah Expired, suruh bikin baru aja (opsional, tergantung kebijakan)
+        if ($ad->status == 'expired') {
+            return response()->json(['message' => 'Iklan sudah kadaluarsa. Silakan pasang baru.'], 400);
+        }
+
+        // Cek Saldo Lagi
+        if ($user->saldo < self::AD_PRICE) {
+            return response()->json(['message' => 'Saldo tidak cukup untuk perpanjang iklan.'], 400);
+        }
+
+        return DB::transaction(function () use ($ad, $user) {
+            // 1. Potong Saldo
+            $user->saldo -= self::AD_PRICE;
+            $user->save();
+
+            // 2. Catat Mutasi
+            BalanceMutation::create([
+                'user_id' => $user->id,
+                'type' => 'debit',
+                'amount' => self::AD_PRICE,
+                'current_balance' => $user->saldo,
+                'category' => 'ads',
+                'description' => 'Perpanjang Iklan (3 Jam)',
+            ]);
+
+            // 3. Update Waktu Iklan
+            // Logika: Tambah 3 jam dari waktu berakhir sebelumnya
+            // Jadi kalau renew pas menit ke-10 grace period, durasi total tetap nyambung rapi.
+            $ad->end_time = $ad->end_time->addHours(self::DURATION_HOURS);
+
+            // Reset Status & Notifikasi
+            $ad->status = 'active';
+            $ad->is_notified = false; // Reset biar nanti dinotif lagi pas mau habis
+            $ad->save();
+
+            return response()->json([
+                'message' => 'Iklan berhasil diperpanjang 3 jam!',
+                'data' => $ad,
+                'new_end_time' => $ad->end_time,
+                'sisa_saldo' => $user->saldo
+            ]);
+        });
+    }
+
+    // ======================================================
+    // 3. LIST IKLAN (UNTUK BERANDA USER)
+    // ======================================================
+    public function index()
+    {
+        // Hanya tampilkan yang Active atau Grace Period
+        // Urutkan secara acak (Random) biar adil bagi semua merchant
+        $ads = Advertisement::with('store:id,nama_toko') // Load nama toko
+            ->whereIn('status', ['active', 'grace_period'])
+            ->where('end_time', '>', now()) // Double check biar yang expired ga muncul
+            ->inRandomOrder()
+            ->get();
+
+        return response()->json([
+            'message' => 'List iklan aktif',
+            'data' => $ads
+        ]);
+    }
+
+    // ======================================================
+    // 4. LIHAT STATUS IKLAN SAYA (MERCHANT)
+    // ======================================================
+    public function myAds(Request $request)
+    {
+        $ads = Advertisement::where('user_id', $request->user()->id)
+            ->latest()
+            ->get();
+
+        return response()->json(['data' => $ads]);
+    }
+}

@@ -12,7 +12,8 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('inspire')->hourly();
+        // Jalankan perintah 'ads:check-status' setiap menit
+        $schedule->command('ads:check-status')->everyMinute();
     }
 
     /**

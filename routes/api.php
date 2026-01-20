@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\UserDashboardController;
 use App\Http\Controllers\Api\HistoryController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\CorrectionController;
+use App\Http\Controllers\Api\AdvertisementController;
 
 /*
 |--------------------------------------------------------------------------
@@ -71,6 +72,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/users/pair', [UserController::class, 'pairChild']);
     Route::get('/users/children', [UserController::class, 'getMyChildren']);
     Route::post('/users/sync-contacts', [UserController::class, 'syncContacts']);
+    Route::get('/ads', [AdvertisementController::class, 'index']);         // Lihat semua iklan aktif
 
     // --- C. MERCHANT REGISTRATION FLOW (Daftar Jadi Pedagang) ---
     Route::post('/users/verify-data', [UserController::class, 'uploadVerification']); // Upload KTP/KTM
@@ -102,6 +104,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/products', [ProductController::class, 'store']); // Tambah Produk
     Route::put('/products/{id}', [ProductController::class, 'update']); // Edit Produk
     Route::delete('/products/{id}', [ProductController::class, 'destroy']); // Hapus Produk
+
+    // --- FITUR IKLAN (MERCHANT) ---
+    Route::post('/ads', [AdvertisementController::class, 'store']);        // Pasang Iklan
+    Route::post('/ads/{id}/renew', [AdvertisementController::class, 'renew']); // Perpanjang
+    Route::get('/my-ads', [AdvertisementController::class, 'myAds']);      // Cek Iklan Sendiri
 
     // --- G. TRANSACTIONS (Kasir & Pembayaran) ---
     Route::post('/checkout', [TransactionController::class, 'checkout']); // User bayar keranjang

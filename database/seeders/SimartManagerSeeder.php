@@ -24,7 +24,5 @@ class SimartManagerSeeder extends Seeder
                 'saldo' => 0,
             ]
         );
-
-        Admin::where('username', 'admin_kasir')->delete();
     }
 }

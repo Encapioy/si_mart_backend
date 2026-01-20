@@ -29,7 +29,7 @@
                         <th class="px-6 py-4">Tipe</th>
                         <th class="px-6 py-4">Tujuan / Deskripsi</th>
                         <th class="px-6 py-4 text-center">Nominal</th>
-                        <th class="px-6 py-4 text-center">Koreksi</th>
+                        {{-- <th class="px-6 py-4 text-center">Koreksi</th> --}}
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
@@ -87,9 +87,8 @@
                                 </span>
                             </td>
 
-                            <td class="px-6 py-4 text-center">
-                                {{-- Ganti $item->id menjadi $trx->id --}}
-                                <button wire:click="deleteTransaction({{ $trx->id }})" {{-- Ganti teks konfirmasi agar sesuai konteks transaksi --}}
+                            {{-- <td class="px-6 py-4 text-center">
+                                <button wire:click="deleteTransaction({{ $trx->id }})"
                                     wire:confirm="Yakin ingin membatalkan Transaksi ini? Dana akan dikembalikan ke user & ditarik dari penerima."
                                     class="group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 hover:text-red-700 hover:border-red-200 transition-all duration-200 active:scale-95">
 
@@ -102,7 +101,7 @@
 
                                     <span class="text-xs font-bold tracking-wide">Batal</span>
                                 </button>
-                            </td>
+                            </td> --}}
 
                         </tr>
                     @empty

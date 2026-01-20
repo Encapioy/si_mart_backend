@@ -8,6 +8,7 @@ use Livewire\Attributes\Layout;
 
 class Dashboard extends Component
 {
+
     #[Layout('components.layouts.userbar')]
     public function render()
     {
@@ -16,9 +17,16 @@ class Dashboard extends Component
         // Ambil Member ID. Kalau kosong (user lama), kita kasih peringatan/fallback
         $memberId = $user->member_id;
 
+        // Ambil iklan yang aktif saja
+        $ads = \App\Models\Advertisement::where('status', 'active')
+            ->where('end_time', '>', now())
+            ->latest()
+            ->get();
+
         return view('Livewire.dashboard', [
             'memberId' => $memberId,
-            'user' => $user
+            'user' => $user,
+            'ads' => $ads // <--- Pastikan variable ini dikirim
         ]);
     }
 }

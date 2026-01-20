@@ -162,32 +162,48 @@ class ProductController extends Controller
         // 4. LOGIKA BARCODE HYBRID
         $final_barcode = $request->filled('barcode') ? $request->barcode : 'SIS-' . mt_rand(100000, 999999);
 
-        // 5. LOGIKA UPLOAD GAMBAR (ORIGINAL & THUMBNAIL)
+        // 5. LOGIKA UPLOAD GAMBAR (FIXED)
         $namaFileGambar = null;
 
         if ($request->hasFile('gambar')) {
             $file = $request->file('gambar');
-            $filename = uniqid() . '.' . $file->getClientOriginalExtension(); // Bikin nama unik (contoh: a7s8d6f.jpg)
 
-            // Siapkan Manager Gambar
-            $manager = new ImageManager(new Driver());
+            // Validasi ektensi manual biar aman
+            $ext = $file->getClientOriginalExtension();
+            $filename = uniqid() . '.' . $ext;
 
-            // A. SIMPAN ORIGINAL
-            // Kita simpan manual ke storage public
-            $file->storeAs('products/originals', $filename, 'public');
+            // --- A. SIMPAN ORIGINAL ---
+            // Gunakan Storage::disk('public')->putFileAs() agar 100% masuk ke folder public
+            // Hasil path: storage/app/public/products/originals/namafile.jpg
+            Storage::disk('public')->putFileAs('products/originals', $file, $filename);
 
-            // B. SIMPAN THUMBNAIL (RESIZE)
-            // Baca gambar
-            $image = $manager->read($file);
-            // Resize (Lebar 300px, Tinggi menyesuaikan rasio)
-            $image->scale(width: 300);
-            // Encode jadi file lagi
-            $encoded = $image->toJpeg(80); // Kualitas 80%
+            // --- B. SIMPAN THUMBNAIL (RESIZE) ---
+            try {
+                $manager = new ImageManager(new Driver());
+                $image = $manager->read($file); // Baca file temp
 
-            // Simpan ke folder thumbnails
-            Storage::disk('public')->put('products/thumbnails/' . $filename, $encoded);
+                $image->scale(width: 300); // Resize
 
-            $namaFileGambar = $filename; // Ini yang masuk DB
+                // Tentukan encoder berdasarkan ekstensi file asli
+                if (in_array(strtolower($ext), ['jpg', 'jpeg'])) {
+                    $encoded = $image->toJpeg(80);
+                } elseif (strtolower($ext) === 'png') {
+                    $encoded = $image->toPng();
+                } else {
+                    $encoded = $image->toWebp(80); // Fallback modern
+                }
+
+                // Simpan hasil resize
+                Storage::disk('public')->put('products/thumbnails/' . $filename, (string) $encoded);
+
+                $namaFileGambar = $filename; // Sukses!
+
+            } catch (\Exception $e) {
+                // Jika resize gagal (misal server ga support GD), tetap simpan nama file
+                // tapi thumbnail pakai gambar original aja sebagai fallback
+                Storage::disk('public')->copy('products/originals/' . $filename, 'products/thumbnails/' . $filename);
+                $namaFileGambar = $filename;
+            }
         }
 
         // 6. SIMPAN

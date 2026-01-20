@@ -185,7 +185,7 @@ class TransactionController extends Controller
     }
 
     // ==========================================
-    // 2. GENERATE QR (Oleh Kasir)
+    // METODE 2 : GENERATE QR (Oleh Kasir)
     // ==========================================
     public function createQrForCashier(Request $request)
     {

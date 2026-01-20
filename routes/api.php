@@ -115,10 +115,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/merchant/sales', [TransactionController::class, 'salesHistory']); // Riwayat Penjualan
 
     // QR & Kiosk
-    Route::post('/transactions/generate-qr', [TransactionController::class, 'createQrForCashier']);
-    Route::post('/transactions/pay-qr', [TransactionController::class, 'payByQr']);
+    Route::post('/transactions/pay-kiosk', [TransactionController::class, 'payByQr']);
     Route::post('/transactions/pay-merchant', [TransactionController::class, 'payMerchantQr']);
-    Route::post('/transactions/pay-kiosk-card', [TransactionController::class, 'payByCardOnKiosk']);
     Route::post('/transactions/pay-store', [TransactionController::class, 'payStoreQr']);
     Route::post('/kiosk/check-balance', [UserController::class, 'checkBalance']);
     Route::post('/scan/check-store', [TransactionController::class, 'checkStoreQr']); // Cek QR
@@ -175,5 +173,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/po/take', [PreOrderController::class, 'markAsTaken']);
         Route::post('/informations', [InformationController::class, 'store']);
         Route::delete('/informations/{id}', [InformationController::class, 'destroy']);
+
+        // Simart
+        Route::post('/cashier/create-qr', [TransactionController::class, 'createQrForCashier']);
+        Route::post('/transactions/pay-kiosk-card', [TransactionController::class, 'payByCardOnKiosk']);
     });
 });

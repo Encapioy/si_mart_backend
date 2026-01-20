@@ -86,11 +86,6 @@ class TransferPage extends Component
             return;
         }
 
-        if ($sender->saldo < $this->amount) {
-            $this->addError('amount', 'Saldo tidak cukup (Anda memiliki tunggakan).');
-            return;
-        }
-
         // 6. Proses Database (Transaction)
         $transaction = DB::transaction(function () use ($sender) {
 

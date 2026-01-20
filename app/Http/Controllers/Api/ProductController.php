@@ -250,15 +250,97 @@ class ProductController extends Controller
     // 4. UPDATE STOK/HARGA
     public function update(Request $request, $id)
     {
+        // 1. CARI PRODUK
         $product = Product::find($id);
+
         if (!$product) {
             return response()->json(['message' => 'Produk tidak ditemukan'], 404);
         }
 
-        $product->update($request->all());
+        // 2. CEK KEPEMILIKAN (AUTHORIZATION)
+        // Hanya Pemilik (Seller) ATAU Admin yang boleh edit
+        $user = $request->user();
+
+        // Logika: Jika user bukan admin DAN bukan pemilik produk ini -> Tolak
+        if ($user->role !== 'admin' && $user->role !== 'kasir' && $product->seller_id !== $user->id) {
+            return response()->json(['message' => 'Anda tidak berhak mengedit produk ini!'], 403);
+        }
+
+        // 3. VALIDASI INPUT
+        // Perhatikan aturan 'unique' pada barcode. Kita harus mengecualikan ID produk ini sendiri.
+        $validator = Validator::make($request->all(), [
+            'nama_produk' => 'sometimes|string|max:255',
+            'barcode' => 'sometimes|string|unique:products,barcode,' . $product->id, // Ignore ID sendiri
+            'harga' => 'sometimes|numeric|min:0',
+            'harga_modal' => 'sometimes|numeric|min:0',
+            'stok' => 'sometimes|integer|min:0',
+            'gambar' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048', // Max 2MB
+            'store_id' => 'nullable|exists:stores,id'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 400);
+        }
+
+        // 4. LOGIKA UPDATE GAMBAR (JIKA ADA GAMBAR BARU)
+        // Kita pakai nama gambar lama dulu sebagai default
+        $namaFileGambar = $product->gambar;
+
+        if ($request->hasFile('gambar')) {
+            // A. HAPUS GAMBAR LAMA (Agar storage tidak penuh sampah)
+            if ($product->gambar) {
+                Storage::disk('public')->delete('products/originals/' . $product->gambar);
+                Storage::disk('public')->delete('products/thumbnails/' . $product->gambar);
+            }
+
+            // B. UPLOAD GAMBAR BARU (Copy logic dari function store)
+            $file = $request->file('gambar');
+            $ext = $file->getClientOriginalExtension();
+            $filename = uniqid() . '.' . $ext;
+
+            // Simpan Original
+            Storage::disk('public')->putFileAs('products/originals', $file, $filename);
+
+            // Simpan Thumbnail
+            try {
+                $manager = new ImageManager(new Driver());
+                $image = $manager->read($file);
+                $image->scale(width: 300);
+
+                if (in_array(strtolower($ext), ['jpg', 'jpeg'])) {
+                    $encoded = $image->toJpeg(80);
+                } elseif (strtolower($ext) === 'png') {
+                    $encoded = $image->toPng();
+                } else {
+                    $encoded = $image->toWebp(80);
+                }
+
+                Storage::disk('public')->put('products/thumbnails/' . $filename, (string) $encoded);
+
+                $namaFileGambar = $filename; // Update variabel nama file
+
+            } catch (\Exception $e) {
+                // Fallback jika resize gagal
+                Storage::disk('public')->copy('products/originals/' . $filename, 'products/thumbnails/' . $filename);
+                $namaFileGambar = $filename;
+            }
+        }
+
+        // 5. UPDATE DATA KE DATABASE
+        $product->update([
+            'nama_produk' => $request->input('nama_produk', $product->nama_produk),
+            'barcode' => $request->input('barcode', $product->barcode),
+            'harga' => $request->input('harga', $product->harga),
+            'harga_modal' => $request->input('harga_modal', $product->harga_modal),
+            'stok' => $request->input('stok', $product->stok),
+            'deskripsi' => $request->input('deskripsi', $product->deskripsi),
+            'gambar' => $namaFileGambar, // Gunakan nama file baru (atau lama jika gak diubah)
+            'store_id' => $request->input('store_id', $product->store_id),
+            // 'seller_id' jangan diupdate, karena pemilik tidak boleh berubah
+        ]);
 
         return response()->json([
-            'message' => 'Produk berhasil diupdate',
+            'message' => 'Produk berhasil diperbarui',
             'data' => $product
         ]);
     }

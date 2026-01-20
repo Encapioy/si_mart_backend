@@ -21,8 +21,15 @@ class ProductController extends Controller
         // 1. FILTER TOKO
         // ------------------------------------------
         // Filter Toko Simart (Barang Konsinyasi/Umum)
-        if ($request->query('toko') == 'simart') {
-            $query->whereNull('store_id');
+        if ($request->input('toko') == 'simart') {
+
+            // Perbaikan Logika:
+            // Kadang data tersimpan sebagai 0, kadang NULL. Kita tangkap keduanya.
+            $query->where(function ($q) {
+                $q->whereNull('store_id')
+                    ->orWhere('store_id', 0);
+            });
+
         }
 
         // Filter Toko Spesifik

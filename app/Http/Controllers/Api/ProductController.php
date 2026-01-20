@@ -15,48 +15,41 @@ class ProductController extends Controller
     // 1. LIHAT SEMUA PRODUK (DENGAN FITUR PENCARIAN)
     public function index(Request $request)
     {
-        // Mulai membangun query
         $query = Product::query();
 
-        // ==========================================
-        // 1. FILTER TOKO / MERCHANT
-        // ==========================================
-
-        // A. Filter Toko Utama (SI MART / Sekolah)
+        // ------------------------------------------
+        // 1. FILTER TOKO
+        // ------------------------------------------
+        // Filter Toko Simart (Barang Konsinyasi/Umum)
         if ($request->query('toko') == 'simart') {
-            // [UBAH DISINI] Pakai store_id
             $query->whereNull('store_id');
         }
 
-        // B. Filter Merchant Spesifik (Misal: User klik Toko Bu Siti)
-        // Frontend kirim: /api/products?store_id=5
-        // [UBAH DISINI] Cek parameter 'store_id'
+        // Filter Toko Spesifik
         if ($request->filled('store_id')) {
-            // [UBAH DISINI] Where ke kolom 'store_id'
             $query->where('store_id', $request->store_id);
         }
 
-        // ==========================================
-        // 2. FILTER PENCARIAN & KATEGORI
-        // ==========================================
-
-        // C. Search (Nama / Barcode)
+        // ------------------------------------------
+        // 2. SEARCH (SUDAH DISESUAIKAN: barcode)
+        // ------------------------------------------
         if ($request->filled('search')) {
             $keyword = $request->search;
             $query->where(function ($q) use ($keyword) {
                 $q->where('nama_produk', 'like', "%{$keyword}%")
-                    ->orWhere('barcode', 'like', "%{$keyword}%");
+                    ->orWhere('barcode', 'like', "%{$keyword}%"); // [FIX] Pakai 'barcode'
             });
         }
 
-        // D. Filter Kategori
+        // ------------------------------------------
+        // 3. FILTER LAIN
+        // ------------------------------------------
         if ($request->filled('category')) {
-            $query->where('kategori', $request->category);
+            // Pastikan kolom 'kategori' ada di tabel.
+            // Di gambar kamu tidak terlihat kolom 'kategori', tapi mungkin ada di scroll bawah?
+            // Jika tidak ada, hapus blok if ini.
+            // $query->where('kategori', $request->category);
         }
-
-        // ==========================================
-        // 3. FILTER STATUS STOK
-        // ==========================================
 
         if ($request->filled('status')) {
             if ($request->status == 'habis') {
@@ -66,20 +59,17 @@ class ProductController extends Controller
             }
         }
 
-        // ==========================================
-        // 4. EKSEKUSI & RESPONSE
-        // ==========================================
-
-        // [OPSIONAL] Cek nama fungsi relasi di Model Product kamu.
-        // Kalau di model Product kamu nama fungsinya public function merchant(), ini sudah benar.
-        // Tapi kalau nama fungsinya public function store(), ganti jadi 'store:id,shop_name'
-        $query->with('merchant:id,shop_name');
+        // ------------------------------------------
+        // 4. EAGER LOAD (Relasi)
+        // ------------------------------------------
+        // Kita load data penjual (User) dan data Toko (Store)
+        // Pastikan model Product.php punya function seller() dan store()
+        $query->with(['seller:id,nama_lengkap', 'store:id,nama_toko']);
 
         $products = $query->latest()->paginate(10);
 
-        foreach ($products as $product) {
-            $product->append('is_favorited');
-        }
+        // Append attribute custom (jika ada logika favorit)
+        // $products->each(function($p) { $p->append('is_favorited'); });
 
         return response()->json([
             'message' => 'List produk berhasil diambil',

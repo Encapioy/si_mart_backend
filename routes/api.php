@@ -183,6 +183,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Simart
         Route::post('/cashier/create-qr', [TransactionController::class, 'createQrForCashier']);
+        Route::get('/cashier/check-qr/{code}', [TransactionController::class, 'showQrDetails']);
         Route::post('/transactions/pay-kiosk-card', [TransactionController::class, 'payByCardOnKiosk']);
     });
 });

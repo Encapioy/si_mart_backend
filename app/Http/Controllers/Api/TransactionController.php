@@ -243,6 +243,44 @@ class TransactionController extends Controller
         });
     }
 
+    public function showQrDetails($code)
+    {
+        // 1. Cari Transaksi berdasarkan Kode
+        // Kita load relasi 'transactionItems' dan di dalamnya load 'product'
+        // Sesuaikan 'transaction_code' dengan nama kolom kode unik di tabel transactions kamu
+        $transaction = \App\Models\Transaction::with(['transactionItems.product'])
+            ->where('transaction_code', $code)
+            ->first();
+
+        // 2. Cek apakah ada?
+        if (!$transaction) {
+            return response()->json(['message' => 'Data transaksi tidak ditemukan / QR Salah'], 404);
+        }
+
+        // 3. Format Data Produk (Agar sesuai request kamu)
+        // Kita map (looping) item-nya biar rapi outputnya
+        $listProduk = $transaction->transactionItems->map(function ($item) {
+            return [
+                'nama_produk' => $item->product->nama_produk, // Ambil nama dari relasi product
+                'qty' => $item->quantity,
+                'harga_satuan' => $item->price, // Opsional: biar tau harga satuan
+                'subtotal' => $item->price * $item->quantity, // Total per item (Basreng 2000)
+            ];
+        });
+
+        // 4. Return JSON
+        return response()->json([
+            'message' => 'Detail QR berhasil ditemukan',
+            'data' => [
+                'kode_transaksi' => $transaction->transaction_code,
+                'status' => $transaction->status, // UNPAID / PAID
+                'produk' => $listProduk,
+                'total_bayar' => $transaction->total_amount, // Total akhir (5000)
+                'tanggal' => $transaction->created_at->format('d M Y H:i'),
+            ]
+        ]);
+    }
+
     // ==========================================
     // 2. USER SCAN QR (Bayar Pakai HP)
     // ==========================================

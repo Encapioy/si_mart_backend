@@ -196,49 +196,60 @@ class TransactionController extends Controller
         ]);
 
         return DB::transaction(function () use ($request) {
-            $total_bayar = 0;
+            // 1. Setup Data Awal
             $qrCode = 'TRX-QR-' . strtoupper(Str::random(8));
             $waktuExpired = now()->addMinutes(5);
-
-            // [PERBAIKAN]: Simpan ID Kasir yang membuat QR ini
             $kasirId = $request->user()->id;
 
+            // 2. Buat Header Transaksi (Total Bayar 0 dulu)
             $transaction = Transaction::create([
                 'transaction_code' => $qrCode,
                 'status' => 'pending',
-                'user_id' => null,
-                'admin_id' => $kasirId, // <--- PENTING: Biar tau siapa yang dapet komisi
-                'total_bayar' => 0,
+                'user_id' => null,       // Pembeli belum scan
+                'admin_id' => $kasirId,   // Kasir pembuat QR
+                'total_bayar' => 0,          // [FIX] Sesuai request kamu
                 'tanggal_transaksi' => now(),
                 'expired_at' => $waktuExpired,
-                'type' => 'purchase', // Tandai ini belanja toko
+                'type' => 'purchase',
             ]);
 
+            $total_bayar_hitung = 0;
+
+            // 3. Looping Item
             foreach ($request->items as $item) {
-                $product = Product::lockForUpdate()->find($item['product_id']); // Lock biar aman
+                // Lock stock biar gak balapan sama transaksi lain
+                $product = Product::lockForUpdate()->find($item['product_id']);
 
-                if ($product->stok < $item['qty'])
-                    throw new \Exception("Stok {$product->nama_produk} kurang!");
+                // Cek Stok
+                if ($product->stok < $item['qty']) {
+                    throw new \Exception("Stok {$product->nama_produk} kurang! Sisa: {$product->stok}");
+                }
 
-                $hargaAkhir = $product->harga_akhir;
-                $subtotal = $hargaAkhir * $item['qty'];
-                $total_bayar += $subtotal;
+                // [FIX] Ambil harga dari kolom 'harga' (Sesuai screenshot tabel products)
+                // Kalau kamu punya logika diskon, lakukan disini.
+                $hargaSatuan = $product->harga;
 
+                // Hitung Subtotal
+                $subtotal = $hargaSatuan * $item['qty'];
+                $total_bayar_hitung += $subtotal;
+
+                // Simpan Item Transaksi (Sesuai tabel transaction_items)
                 TransactionItem::create([
                     'transaction_id' => $transaction->id,
                     'product_id' => $product->id,
-                    'qty' => $item['qty'],
-                    'harga_saat_itu' => $hargaAkhir
+                    'qty' => $item['qty'],       // [FIX] qty
+                    'harga_saat_itu' => $hargaSatuan        // [FIX] harga_saat_itu
                 ]);
             }
 
-            $transaction->total_bayar = $total_bayar;
+            // 4. Update Total Bayar Akhir ke Database
+            $transaction->total_bayar = $total_bayar_hitung;
             $transaction->save();
 
             return response()->json([
                 'message' => 'QR Code Siap Scan',
                 'qr_code_value' => $qrCode,
-                'total_bayar' => $total_bayar
+                'total_bayar' => $total_bayar_hitung
             ]);
         });
     }
@@ -262,9 +273,9 @@ class TransactionController extends Controller
         $listProduk = $transaction->transactionItems->map(function ($item) {
             return [
                 'nama_produk' => $item->product->nama_produk, // Ambil nama dari relasi product
-                'qty' => $item->quantity,
-                'harga_satuan' => $item->price, // Opsional: biar tau harga satuan
-                'subtotal' => $item->price * $item->quantity, // Total per item (Basreng 2000)
+                'qty' => $item->qty,
+                'harga_satuan' => $item->harga_saat_itu, // Opsional: biar tau harga satuan
+                'subtotal' => $item->harga_saat_itu * $item->qty, // Total per item (Basreng 2000)
             ];
         });
 

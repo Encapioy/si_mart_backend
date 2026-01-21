@@ -259,7 +259,7 @@ class TransactionController extends Controller
         // 1. Cari Transaksi berdasarkan Kode
         // Kita load relasi 'transactionItems' dan di dalamnya load 'product'
         // Sesuaikan 'transaction_code' dengan nama kolom kode unik di tabel transactions kamu
-        $transaction = \App\Models\Transaction::with(['transactionItems.product'])
+        $transaction = Transaction::with(['transactionItems.product'])
             ->where('transaction_code', $code)
             ->first();
 

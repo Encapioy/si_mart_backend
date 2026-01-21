@@ -108,7 +108,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // --- FITUR IKLAN (MERCHANT) ---
     Route::post('/ads', [AdvertisementController::class, 'store']);        // Pasang Iklan
     Route::post('/ads/{id}/renew', [AdvertisementController::class, 'renew']); // Perpanjang
-    Route::get('/my-ads', [AdvertisementController::class, 'myAds']);      // Cek Iklan Sendiri
+    Route::get('/my-ads/history', [AdvertisementController::class, 'myAdsHistory']); // Cek semua iklan miliknya
+    Route::get('/my-ads/active', [AdvertisementController::class, 'myActiveAds']); // Cek iklan aktif miliknya
 
     // --- G. TRANSACTIONS (Kasir & Pembayaran) ---
     Route::post('/checkout', [TransactionController::class, 'checkout']); // User bayar keranjang

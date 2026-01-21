@@ -224,14 +224,101 @@ class AdvertisementController extends Controller
     }
 
     // ======================================================
-    // 4. LIHAT STATUS IKLAN SAYA (MERCHANT)
+    // 4. LIST IKLAN SAYA YANG SEDANG TAYANG (MERCHANT)
     // ======================================================
-    public function myAds(Request $request)
+    public function myActiveAds(Request $request)
     {
-        $ads = Advertisement::where('user_id', $request->user()->id)
-            ->latest()
-            ->get();
+        $user = $request->user();
 
-        return response()->json(['data' => $ads]);
+        // Ambil iklan milik user yang sedang login
+        // Syarat: Status Active/Grace Period DAN Waktunya belum habis
+        $ads = Advertisement::where('user_id', $user->id)
+            ->whereIn('status', ['active', 'grace_period'])
+            ->where('end_time', '>', now())
+            ->with('store:id,nama_toko,gambar') // Load data toko sekalian
+            ->latest()
+            ->get()
+            ->map(function ($ad) {
+                // Format output lengkap dengan 3 resolusi gambar
+                return [
+                    'id' => $ad->id,
+                    'title' => $ad->title,
+                    'caption' => $ad->caption,
+
+                    // Detail Waktu
+                    'start_time' => $ad->start_time->format('d M Y H:i'),
+                    'end_time' => $ad->end_time->format('d M Y H:i'),
+                    'sisa_waktu' => $ad->end_time->diffForHumans(), // Contoh output: "1 hour from now"
+
+                    // Status
+                    'status' => $ad->status,
+
+                    // 3 Versi Gambar
+                    'banner' => [
+                        'low' => asset('storage/ads/' . $ad->banner_low),
+                        'medium' => asset('storage/ads/' . $ad->banner_medium),
+                        'original' => asset('storage/ads/' . $ad->banner_original),
+                    ],
+
+                    // Info Toko
+                    'toko' => [
+                        'id' => $ad->store->id,
+                        'nama' => $ad->store->nama_toko,
+                        'gambar' => $ad->store->gambar ? asset('storage/stores/' . $ad->store->gambar) : null,
+                    ]
+                ];
+            });
+
+        return response()->json([
+            'message' => 'List iklan Anda yang sedang tayang',
+            'data' => $ads
+        ]);
+    }
+
+    // ======================================================
+    // 5. RIWAYAT SEMUA IKLAN SAYA (History - Termasuk Expired)
+    // ======================================================
+    public function myAdsHistory(Request $request)
+    {
+        $user = $request->user();
+
+        // Ambil SEMUA iklan milik user (Tanpa filter active/time)
+        $ads = Advertisement::where('user_id', $user->id)
+            ->with('store:id,nama_toko,gambar') // Tetap load toko
+            ->latest()
+            ->get()
+            ->map(function ($ad) {
+                // KITA PAKAI FORMAT YANG SAMA BIAR FRONTEND GAK BINGUNG
+                return [
+                    'id' => $ad->id,
+                    'title' => $ad->title,
+                    'caption' => $ad->caption,
+
+                    // Detail Waktu
+                    'start_time' => $ad->start_time->format('d M Y H:i'),
+                    'end_time' => $ad->end_time->format('d M Y H:i'),
+
+                    // Status (Penting buat history biar tau mana yang expired)
+                    'status' => $ad->status,
+
+                    // Tetap sediakan 3 gambar lengkap
+                    'banner' => [
+                        'low' => $ad->banner_low ? asset('storage/ads/' . $ad->banner_low) : null,
+                        'medium' => $ad->banner_medium ? asset('storage/ads/' . $ad->banner_medium) : null,
+                        'original' => asset('storage/ads/' . $ad->banner_original),
+                    ],
+
+                    'toko' => [
+                        'id' => $ad->store->id,
+                        'nama' => $ad->store->nama_toko,
+                        'gambar' => $ad->store->gambar ? asset('storage/stores/' . $ad->store->gambar) : null,
+                    ]
+                ];
+            });
+
+        return response()->json([
+            'message' => 'Riwayat semua iklan Anda',
+            'data' => $ads
+        ]);
     }
 }

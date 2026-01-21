@@ -12,7 +12,11 @@ class Advertisement extends Model
     protected $fillable = [
         'user_id',
         'store_id',
-        'banner_image',
+        'banner_original',
+        'banner_medium',
+        'banner_low',
+        'title',
+        'caption',
         'start_time',
         'end_time',
         'status',

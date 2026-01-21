@@ -5,8 +5,7 @@
     {{-- =============================================== --}}
     <div
         class="relative bg-gradient-to-br from-blue-700 via-blue-600 to-indigo-800 pt-12 pb-36 rounded-b-[3.5rem] shadow-xl overflow-hidden">
-
-        {{-- Decorative Background Elements --}}
+        {{-- Decorative Background --}}
         <div class="absolute inset-0 overflow-hidden pointer-events-none">
             <div
                 class="absolute -top-[20%] -left-[10%] w-96 h-96 bg-blue-400/20 rounded-full blur-3xl mix-blend-overlay animate-pulse">
@@ -54,13 +53,12 @@
     <div class="px-5 -mt-24 relative z-20">
         <div
             class="w-full max-w-sm mx-auto bg-white rounded-[2rem] shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] border border-white/60 overflow-hidden transform transition-all hover:-translate-y-1 duration-300">
-
             {{-- Card Header --}}
             <div
                 class="bg-slate-50/80 backdrop-blur-sm p-5 text-center border-b border-slate-100 flex items-center justify-between px-8">
                 <div class="text-left">
                     <h3 class="text-base font-bold text-slate-800">QR Code</h3>
-                    <p class="text-[10px] text-slate-500">Scan untuk menerima transfer dari orang lain</p>
+                    <p class="text-[10px] text-slate-500">Scan untuk terima dana</p>
                 </div>
                 <div class="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -74,7 +72,6 @@
             {{-- Card Body --}}
             <div class="p-8 bg-white flex flex-col items-center">
                 @if($memberId)
-                    {{-- QR Container --}}
                     <div class="relative group cursor-pointer" onclick="openQrModal()">
                         <div
                             class="absolute -inset-2 bg-gradient-to-tr from-blue-500 to-indigo-500 rounded-3xl blur opacity-25 group-hover:opacity-50 transition duration-500">
@@ -84,19 +81,14 @@
                             <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data={{ $memberId }}"
                                 alt="QR Member"
                                 class="w-40 h-40 object-contain mix-blend-multiply opacity-90 group-hover:opacity-100 transition">
-
-                            {{-- Logo Tengah QR --}}
                             <div
                                 class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-1 rounded-full shadow-sm">
                                 <div
                                     class="w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-[9px] shadow-inner">
-                                    SI
-                                </div>
+                                    SI</div>
                             </div>
                         </div>
                     </div>
-
-                    {{-- Member ID --}}
                     <div class="mt-6 w-full text-center">
                         <div class="inline-block bg-slate-50 border border-slate-200 rounded-xl px-4 py-2">
                             <p class="text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-0.5">ID MEMBER</p>
@@ -104,7 +96,6 @@
                         </div>
                     </div>
                 @else
-                    {{-- Empty State --}}
                     <div class="text-center py-6">
                         <div
                             class="w-16 h-16 bg-red-50 rounded-2xl rotate-3 flex items-center justify-center mx-auto mb-4 border border-red-100">
@@ -122,34 +113,40 @@
     </div>
 
     {{-- =============================================== --}}
-    {{-- 3. ADVERTISING / PROMO SECTION (NEW!) --}}
+    {{-- 3. ADVERTISING / PROMO SECTION --}}
     {{-- =============================================== --}}
     <div class="max-w-6xl mx-auto mt-10 px-6">
-
-        {{-- Section Header --}}
         <div class="flex items-center justify-between mb-4">
             <div>
                 <h3 class="text-lg font-bold text-slate-800">Promo & Info</h3>
                 <p class="text-xs text-slate-500">Penawaran menarik dari merchant sekolah</p>
             </div>
-            {{-- Optional: Arrow buttons for desktop could go here --}}
         </div>
 
-        {{-- Scroll Container --}}
-        {{-- Logika Responsive:
-        - Mobile: snap-x mandatory (biar berhenti pas di tengah gambar), lebar 100%
-        - Desktop: lebar disesuaikan biar muat 3 --}}
         <div class="flex overflow-x-auto pb-6 -mx-4 px-4 sm:mx-0 sm:px-0 gap-4 sm:gap-6 snap-x snap-mandatory scrollbar-hide"
             style="scrollbar-width: none; -ms-overflow-style: none;">
 
             @forelse($ads as $ad)
-                {{-- AD CARD --}}
+                {{-- CARD IKLAN --}}
                 <div class="relative flex-shrink-0 snap-center w-full sm:w-[calc(50%-12px)] md:w-[calc(33.33%-16px)] group">
                     <div
                         class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden h-full flex flex-col hover:shadow-md transition-shadow duration-300">
 
-                        {{-- Image Wrapper (Aspect Ratio 16:9 or similar) --}}
-                        <div class="relative w-full aspect-[16/9] overflow-hidden bg-slate-100">
+                        {{-- Image Wrapper dengan Progressive Loading (Alpine JS) --}}
+                        <div class="relative w-full aspect-[16/9] overflow-hidden bg-slate-200" x-data="{
+                                     imageUrl: '{{ asset('storage/ads/' . $ad->banner_low) }}',
+                                     isLoading: true,
+                                     init() {
+                                         // Preload Medium Image (Original terlalu berat untuk thumbnail, jadi kita pakai Medium)
+                                         let img = new Image();
+                                         img.src = '{{ asset('storage/ads/' . $ad->banner_medium) }}';
+                                         img.onload = () => {
+                                             this.imageUrl = img.src;
+                                             this.isLoading = false;
+                                         }
+                                     }
+                                 }">
+
                             {{-- Badge Toko --}}
                             <div
                                 class="absolute top-3 left-3 z-10 bg-white/90 backdrop-blur-md px-2 py-1 rounded-lg shadow-sm border border-white/50">
@@ -163,34 +160,30 @@
                                 </span>
                             </div>
 
-                            <img src="{{ asset('storage/ads/' . $ad->banner_image) }}" alt="Promo"
-                                class="w-full h-full object-cover transform group-hover:scale-105 transition duration-700 ease-out">
+                            {{-- Gambar Utama (Dynamic Source) --}}
+                            <img :src="imageUrl" alt="{{ $ad->title }}"
+                                class="w-full h-full object-cover transform group-hover:scale-105 transition-all duration-700 ease-out"
+                                :class="isLoading ? 'blur-sm scale-110' : 'blur-0 scale-100'">
 
-                            {{-- Gradient Overlay (Supaya teks putih terbaca) --}}
+                            {{-- Gradient Overlay --}}
                             <div
-                                class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80">
+                                class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-90">
                             </div>
 
-                            {{-- Teks di dalam gambar (bawah) --}}
-                            <div class="absolute bottom-3 left-3 right-3">
-                                <p class="text-white text-xs font-medium line-clamp-2">
-                                    {{-- Bisa ambil deskripsi toko atau teks default --}}
-                                    Kunjungi {{ $ad->store->nama_toko }} sekarang!
+                            {{-- Title & Caption --}}
+                            <div class="absolute bottom-4 left-4 right-4 text-left">
+                                <h4 class="text-white font-bold text-sm mb-1 leading-tight drop-shadow-sm">
+                                    {{ Str::limit($ad->title, 40) }}
+                                </h4>
+                                <p class="text-slate-200 text-[10px] leading-relaxed line-clamp-2">
+                                    {{ $ad->caption }}
                                 </p>
                             </div>
                         </div>
-
-                        {{-- Action Button (Optional) --}}
-                        {{-- <div class="p-3 bg-white border-t border-slate-50">
-                            <button
-                                class="w-full py-2 text-xs font-bold text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition">
-                                Lihat Toko
-                            </button>
-                        </div> --}}
                     </div>
                 </div>
             @empty
-                {{-- STATE KOSONG (Skeleton / Default Info) --}}
+                {{-- State Kosong --}}
                 <div
                     class="w-full flex flex-col items-center justify-center py-10 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
                     <p class="text-slate-400 font-medium text-sm">Belum ada promo aktif saat ini.</p>
@@ -202,7 +195,6 @@
 
     <x-modal-my-qr />
 
-    {{-- Style Tambahan untuk Hide Scrollbar (jika class tailwind scrollbar-hide tdk jalan) --}}
     <style>
         .scrollbar-hide::-webkit-scrollbar {
             display: none;

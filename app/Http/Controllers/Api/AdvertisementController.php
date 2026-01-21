@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
+use Intervention\Image\ImageManager;
+use Intervention\Image\Drivers\Gd\Driver;
 
 class AdvertisementController extends Controller
 {
@@ -30,6 +32,8 @@ class AdvertisementController extends Controller
             'store_id' => 'required|exists:stores,id',
             // Validasi gambar: wajib ada, format gambar, maks 2MB
             'banner_image' => 'required|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'title' => 'required|string|max:50',
+            'caption' => 'required|string|max:150',
         ]);
 
         if ($validator->fails()) {
@@ -60,21 +64,50 @@ class AdvertisementController extends Controller
                 'amount' => self::AD_PRICE,
                 'current_balance' => $user->saldo,
                 'category' => 'ads', // Kategori baru: Iklan
-                'description' => 'Pasang Iklan Toko (3 Jam)',
+                'description' => 'Pasang Iklan: ' . $request->title,
             ]);
 
             // 3. Upload Gambar
+            $manager = new ImageManager(new Driver());
             $file = $request->file('banner_image');
-            $filename = 'AD-' . uniqid() . '.' . $file->getClientOriginalExtension();
 
-            // Simpan ke folder public/ads
-            Storage::disk('public')->putFileAs('ads', $file, $filename);
+            // Generate Nama Unik Dasar
+            $baseFilename = 'AD-' . uniqid();
+            $ext = $file->getClientOriginalExtension();
+
+            // ---------------------------------------------
+            // A. VERSI ORIGINAL (Simpan apa adanya)
+            // ---------------------------------------------
+            $originalName = $baseFilename . '-original.' . $ext;
+            Storage::disk('public')->putFileAs('ads', $file, $originalName);
+
+            // ---------------------------------------------
+            // B. VERSI MEDIUM (Untuk Tampilan Default)
+            // ---------------------------------------------
+            // Resize lebar ke 800px (tinggi auto), convert ke WebP biar ringan
+            $mediumName = $baseFilename . '-mid.webp';
+            $imgMid = $manager->read($file);
+            $imgMid->scale(width: 800);
+            Storage::disk('public')->put('ads/' . $mediumName, (string) $imgMid->toWebp(75)); // Kualitas 75%
+
+            // ---------------------------------------------
+            // C. VERSI LOW (Untuk Placeholder Blur)
+            // ---------------------------------------------
+            // Resize sangat kecil (lebar 50px). Nanti di Frontend di-stretch (blur)
+            $lowName = $baseFilename . '-low.webp';
+            $imgLow = $manager->read($file);
+            $imgLow->scale(width: 50);
+            Storage::disk('public')->put('ads/' . $lowName, (string) $imgLow->toWebp(20)); // Kualitas 20%
 
             // 4. Buat Data Iklan
             $ad = Advertisement::create([
                 'user_id' => $user->id,
                 'store_id' => $request->store_id,
-                'banner_image' => $filename,
+                'banner_original' => $originalName,
+                'banner_medium' => $mediumName,
+                'banner_low' => $lowName,
+                'title' => $request->title,
+                'caption' => $request->caption,
                 'start_time' => now(),
                 'end_time' => now()->addHours(self::DURATION_HOURS), // 3 Jam dari sekarang
                 'status' => 'active',
@@ -157,11 +190,32 @@ class AdvertisementController extends Controller
     {
         // Hanya tampilkan yang Active atau Grace Period
         // Urutkan secara acak (Random) biar adil bagi semua merchant
-        $ads = Advertisement::with('store:id,nama_toko') // Load nama toko
-            ->whereIn('status', ['active', 'grace_period'])
-            ->where('end_time', '>', now()) // Double check biar yang expired ga muncul
+        $ads = Advertisement::whereIn('status', ['active', 'grace_period'])
+            ->where('end_time', '>', now())
+            ->with(['store:id,user_id,nama_toko,gambar', 'store.owner:id,nama_lengkap'])
             ->inRandomOrder()
-            ->get();
+            ->get()
+            ->map(function ($ad) {
+                return [
+                    'id' => $ad->id,
+
+                    // OUTPUT 3 VERSI GAMBAR
+                    'banner' => [
+                        'low' => asset('storage/ads/' . $ad->banner_low),      // Size ~1KB (Instan)
+                        'medium' => asset('storage/ads/' . $ad->banner_medium),   // Size ~100KB (Cepat)
+                        'original' => asset('storage/ads/' . $ad->banner_original), // Size ~2MB (Detail)
+                    ],
+
+                    'title' => $ad->title,
+                    'caption' => $ad->caption,
+                    'end_time' => $ad->end_time,
+                    'toko' => [
+                        'nama' => $ad->store->nama_toko,
+                        'gambar_url' => $ad->store->gambar ? asset('storage/stores/' . $ad->store->gambar) : null,
+                        'owner' => $ad->store->owner->nama_lengkap ?? 'Unknown'
+                    ]
+                ];
+            });
 
         return response()->json([
             'message' => 'List iklan aktif',

@@ -192,7 +192,7 @@ class AdvertisementController extends Controller
         // Urutkan secara acak (Random) biar adil bagi semua merchant
         $ads = Advertisement::whereIn('status', ['active', 'grace_period'])
             ->where('end_time', '>', now())
-            ->with(['store:id,user_id,nama_toko,gambar', 'store.owner:id,nama_lengkap'])
+            ->with(['store:id,user_id,nama_toko,gambar', 'store.owner:id,nama_lengkap,no_hp'])
             ->inRandomOrder()
             ->get()
             ->map(function ($ad) {
@@ -212,7 +212,8 @@ class AdvertisementController extends Controller
                     'toko' => [
                         'nama' => $ad->store->nama_toko,
                         'gambar_url' => $ad->store->gambar ? asset('storage/stores/' . $ad->store->gambar) : null,
-                        'owner' => $ad->store->owner->nama_lengkap ?? 'Unknown'
+                        'owner' => $ad->store->owner->nama_lengkap ?? 'Unknown',
+                        'no_hp' => $ad->store->owner->no_hp
                     ]
                 ];
             });

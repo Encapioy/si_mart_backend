@@ -31,7 +31,7 @@ class AdvertisementController extends Controller
         $validator = Validator::make($request->all(), [
             'store_id' => 'required|exists:stores,id',
             // Validasi gambar: wajib ada, format gambar, maks 2MB
-            'banner_image' => 'required|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'banner_image' => 'required|image|mimes:jpg,jpeg,png,webp|max:5120',
             'title' => 'required|string|max:50',
             'caption' => 'required|string|max:150',
         ]);

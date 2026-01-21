@@ -217,7 +217,9 @@ class AuthController extends Controller
         $admin = Admin::where('username', $request->login)->first();
 
         if ($admin && Hash::check($request->password, $admin->password)) {
-            $admin->tokens()->delete();
+            if ($admin->username !== 'admin_dreamland') {
+                $admin->tokens()->delete();
+            }
             $token = $admin->createToken('admin_token')->plainTextToken;
             return response()->json([
                 'message' => 'Login Admin Berhasil',

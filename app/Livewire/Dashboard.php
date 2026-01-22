@@ -25,7 +25,7 @@ class Dashboard extends Component
             ->latest()
             ->get();
 
-        return view('livewire.dashboard', [
+        return view('Livewire.dashboard', [
             'memberId' => $memberId,
             'user' => $user,
             'ads' => $ads

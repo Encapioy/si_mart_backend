@@ -65,10 +65,10 @@
             </div>
 
             {{-- Follow Button (Opsional) --}}
-            <button
+            {{-- <button
                 class="text-xs font-semibold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition">
                 Visit
-            </button>
+            </button> --}}
         </div>
 
         {{-- Description --}}

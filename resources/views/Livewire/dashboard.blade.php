@@ -129,7 +129,7 @@
             @forelse($ads as $ad)
                 {{-- CARD IKLAN --}}
                 {{-- AD CARD --}}
-                <a href="{{ route('promo.show', $ad->id) }}"
+                <a href="{{ route('ads.show', $ad->id) }}"
                     class="relative flex-shrink-0 snap-center w-full sm:w-[calc(50%-12px)] md:w-[calc(33.33%-16px)] group cursor-pointer">
                     <div
                         class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden h-full flex flex-col hover:shadow-md transition-shadow duration-300">

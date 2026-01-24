@@ -19,7 +19,7 @@
     </div>
 
     {{-- 2. CONTENT SECTION --}}
-    <div class="px-6 relative -mt-12 z-10">
+    <div class="px-6 relative mt-10 z-10">
 
         {{-- Official Badge --}}
         <div

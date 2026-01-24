@@ -19,7 +19,6 @@ class AdDetail extends Component
 
     // Kita pakai layout kosong/khusus biar lebih immersif (tanpa navbar user biasa)
     // Atau sesuaikan dengan layout utamamu
-    #[Layout('components.layouts.userbar')]
     public function render()
     {
         return view('Livewire.ad-detail');

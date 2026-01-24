@@ -40,7 +40,7 @@ Route::middleware(['auth:web'])->group(function () {
     Route::get('/dashboard', Dashboard::class)->name('dashboard');
     Route::get('/history', HistoryPage::class)->name('history');
     Route::get('/profile', ProfilePage::class)->name('profile');
-    Route::get('/adv/{id}', AdDetail::class)->name('adv.show');
+    Route::get('/ads/{id}', AdDetail::class)->name('ads.show');
     Route::get('/scan', ScanPage::class)->name('scan');
     Route::get('/transfer/{memberId}', TransferPage::class)->name('transfer.user');
     Route::get('/pay/{storeId}', PaymentPage::class)->name('pay');

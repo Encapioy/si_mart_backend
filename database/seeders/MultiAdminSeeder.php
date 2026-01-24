@@ -21,8 +21,8 @@ class MultiAdminSeeder extends Seeder
         // 4. NYALAKAN LAGI PENGECEKANNYA
         Schema::enableForeignKeyConstraints();
 
-        $passwordDefault = Hash::make('admin123');
-        $pinDefault = '123456';
+        // $passwordDefault = Hash::make('adminsipay99');
+        $pinDefault = '146041';
 
         // Fungsi kecil buat generate ID Admin Unik: ADM + Random
         $genId = function () {
@@ -33,7 +33,7 @@ class MultiAdminSeeder extends Seeder
         Admin::create([
             'nama_lengkap' => 'Super Admin Pusat',
             'username' => 'admin_pusat',
-            'password' => $passwordDefault,
+            'password' => 'adminpusatsipay26',
             'pin' => $pinDefault,
             'role' => 'pusat',
             'saldo' => 0,
@@ -43,7 +43,7 @@ class MultiAdminSeeder extends Seeder
         Admin::create([
             'nama_lengkap' => 'Tim Developer IT',
             'username' => 'admin_dev',
-            'password' => $passwordDefault,
+            'password' => 'admindevsipay26',
             'pin' => $pinDefault,
             'role' => 'developer',
             'saldo' => 0,
@@ -52,7 +52,7 @@ class MultiAdminSeeder extends Seeder
         Admin::create([
             'nama_lengkap' => 'Manager Toko Simart',
             'username' => 'admin_simart',
-            'password' => $passwordDefault,
+            'password' => 'adminsimartsipay26',
             'pin' => $pinDefault,
             'role' => 'simart',
             'saldo' => 0,
@@ -61,16 +61,16 @@ class MultiAdminSeeder extends Seeder
         Admin::create([
             'nama_lengkap' => 'Bendahara Sekolah',
             'username' => 'admin_keuangan',
-            'password' => $passwordDefault,
+            'password' => 'adminkeuangansipay26',
             'pin' => $pinDefault,
             'role' => 'keuangan',
-            'saldo' => 100000000,
+            'saldo' => 0,
         ]);
 
         Admin::create([
             'nama_lengkap' => 'Admin Dreamland',
             'username' => 'admin_dreamland',
-            'password' => $passwordDefault,
+            'password' => 'admindreamlandsipay26',
             'pin' => $pinDefault,
             'role' => 'dreamland',
             'saldo' => 0,

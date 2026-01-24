@@ -128,24 +128,25 @@
 
             @forelse($ads as $ad)
                 {{-- CARD IKLAN --}}
-                <div class="relative flex-shrink-0 snap-center w-full sm:w-[calc(50%-12px)] md:w-[calc(33.33%-16px)] group">
+                {{-- AD CARD --}}
+                <a href="{{ route('promo.show', $ad->id) }}"
+                    class="relative flex-shrink-0 snap-center w-full sm:w-[calc(50%-12px)] md:w-[calc(33.33%-16px)] group cursor-pointer">
                     <div
                         class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden h-full flex flex-col hover:shadow-md transition-shadow duration-300">
 
-                        {{-- Image Wrapper dengan Progressive Loading (Alpine JS) --}}
+                        {{-- Image Wrapper dengan Progressive Loading --}}
                         <div class="relative w-full aspect-[16/9] overflow-hidden bg-slate-200" x-data="{
-                                     imageUrl: '{{ asset('storage/ads/' . $ad->banner_low) }}',
-                                     isLoading: true,
-                                     init() {
-                                         // Preload Medium Image (Original terlalu berat untuk thumbnail, jadi kita pakai Medium)
-                                         let img = new Image();
-                                         img.src = '{{ asset('storage/ads/' . $ad->banner_medium) }}';
-                                         img.onload = () => {
-                                             this.imageUrl = img.src;
-                                             this.isLoading = false;
-                                         }
-                                     }
-                                 }">
+                                imageUrl: '{{ asset('storage/ads/' . $ad->banner_low) }}',
+                                isLoading: true,
+                                init() {
+                                    let img = new Image();
+                                    img.src = '{{ asset('storage/ads/' . $ad->banner_medium) }}';
+                                    img.onload = () => {
+                                        this.imageUrl = img.src;
+                                        this.isLoading = false;
+                                    }
+                                }
+                            }">
 
                             {{-- Badge Toko --}}
                             <div
@@ -160,28 +161,20 @@
                                 </span>
                             </div>
 
-                            {{-- Gambar Utama (Dynamic Source) --}}
                             <img :src="imageUrl" alt="{{ $ad->title }}"
                                 class="w-full h-full object-cover transform group-hover:scale-105 transition-all duration-700 ease-out"
                                 :class="isLoading ? 'blur-sm scale-110' : 'blur-0 scale-100'">
 
-                            {{-- Gradient Overlay --}}
-                            <div
-                                class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-90">
-                            </div>
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-90"></div>
 
-                            {{-- Title & Caption --}}
                             <div class="absolute bottom-4 left-4 right-4 text-left">
                                 <h4 class="text-white font-bold text-sm mb-1 leading-tight drop-shadow-sm">
-                                    {{ Str::limit($ad->title, 40) }}
-                                </h4>
-                                <p class="text-slate-200 text-[10px] leading-relaxed line-clamp-2">
-                                    {{ $ad->caption }}
-                                </p>
+                                    {{ Str::limit($ad->title, 40) }}</h4>
+                                <p class="text-slate-200 text-[10px] leading-relaxed line-clamp-2">{{ $ad->caption }}</p>
                             </div>
                         </div>
                     </div>
-                </div>
+                </a>
             @empty
                 {{-- State Kosong --}}
                 <div

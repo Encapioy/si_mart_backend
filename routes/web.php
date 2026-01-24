@@ -9,6 +9,7 @@ use App\Livewire\Login;
 use App\Livewire\Dashboard;
 use App\Livewire\HistoryPage;
 use App\Livewire\ProfilePage;
+use App\Livewire\AdDetail;
 use App\Livewire\ScanPage;
 use App\Livewire\PaymentPage;
 use App\Livewire\PaymentSuccessPage;
@@ -39,6 +40,7 @@ Route::middleware(['auth:web'])->group(function () {
     Route::get('/dashboard', Dashboard::class)->name('dashboard');
     Route::get('/history', HistoryPage::class)->name('history');
     Route::get('/profile', ProfilePage::class)->name('profile');
+    Route::get('/adv/{id}', AdDetail::class)->name('adv.show');
     Route::get('/scan', ScanPage::class)->name('scan');
     Route::get('/transfer/{memberId}', TransferPage::class)->name('transfer.user');
     Route::get('/pay/{storeId}', PaymentPage::class)->name('pay');

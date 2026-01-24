@@ -160,10 +160,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/users/{id}', [AdminController::class, 'updateUser']);
 
         // Verifikasi Merchant (Baru)
-        Route::get('/merchants/pending', [MerchantVerificationController::class, 'listPending']);
-        Route::get('/merchants/{id}', [MerchantVerificationController::class, 'show']);
-        Route::post('/merchants/{id}/approve', [MerchantVerificationController::class, 'approve']);
-        Route::post('/merchants/{id}/reject', [MerchantVerificationController::class, 'reject']);
+        // Route::get('/merchants/pending', [MerchantVerificationController::class, 'listPending']);
+        // Route::get('/merchants/{id}', [MerchantVerificationController::class, 'show']);
+        // Route::post('/merchants/{id}/approve', [MerchantVerificationController::class, 'approve']);
+        // Route::post('/merchants/{id}/reject', [MerchantVerificationController::class, 'reject']);
 
         // Keuangan
         Route::get('/topups', [AdminController::class, 'getPendingTopUps']);

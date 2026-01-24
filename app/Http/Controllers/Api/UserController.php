@@ -124,10 +124,45 @@ class UserController extends Controller
         if (!$user)
             return response()->json(['message' => 'User not found'], 404);
 
+        if ($user->status_verifikasi == 'unverified') {
+            return response()->json(['message' => 'User belum upload dokumen!'], 400);
+        }
+
         $user->status_verifikasi = 'verified';
         $user->save();
 
         return response()->json(['message' => 'User berhasil diverifikasi menjadi Customer']);
+    }
+
+    // 5. (ADMIN) TOLAK VERIFIKASI USER
+    public function rejectUser(Request $request, $user_id)
+    {
+        $user = User::find($user_id);
+
+        if (!$user) {
+            return response()->json(['message' => 'User tidak ditemukan'], 404);
+        }
+
+        // Validasi Status: Cuma yang 'pending' yang butuh aksi.
+        // Tapi kalau mau bisa reject yang sudah verified (karena penipuan), hilangkan if ini.
+        if ($user->status_verifikasi == 'unverified') {
+            return response()->json(['message' => 'User belum mengajukan verifikasi.'], 400);
+        }
+
+        // Ubah status jadi REJECTED
+        // User harus upload ulang lewat endpoint 'uploadVerification'
+        // agar statusnya kembali jadi 'pending'.
+        $user->status_verifikasi = 'rejected';
+
+        // (Opsional: Simpan alasan penolakan jika ada kolom 'alasan_penolakan' di database)
+        // $user->alasan_penolakan = $request->alasan;
+
+        $user->save();
+
+        return response()->json([
+            'message' => 'Pengajuan verifikasi ditolak. User harus upload ulang.',
+            'status' => $user->status_verifikasi
+        ]);
     }
 
     // 5. CEK SALDO (Support NFC & QR Code)

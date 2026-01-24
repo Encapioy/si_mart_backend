@@ -22,6 +22,7 @@ use App\Livewire\AdminFinancialStats;
 use App\Livewire\AdminManageCashier;
 use App\Livewire\AdminTopupHistory;
 use App\Livewire\AdminTopup;
+use App\Livewire\AdminUserVerification;
 
 // 1. Landing Page
 Route::get('/', function () {
@@ -58,4 +59,5 @@ Route::middleware(['auth:admin'])->group(function () {
     Route::get('/admin/transactions', AdminTransactionHistory::class)->name('admin.transactions');
     Route::get('/admin/topups', AdminTopupHistory::class)->name('admin.topups');
     Route::get('/admin/manage-cashier', AdminManageCashier::class)->name('admin.manage.cashier');
+    Route::get('/admin/verification', AdminUserVerification::class)->name('admin.verifikasi');
 });

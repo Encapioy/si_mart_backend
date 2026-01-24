@@ -51,11 +51,11 @@ class MultiAdminSeeder extends Seeder
 
         Admin::create([
             'nama_lengkap' => 'Manager Toko Simart',
-            'username' => 'admin_kasir',
+            'username' => 'admin_simart',
             'password' => $passwordDefault,
             'pin' => $pinDefault,
-            'role' => 'kasir',
-            'saldo' => 5000000,
+            'role' => 'simart',
+            'saldo' => 0,
         ]);
 
         Admin::create([
@@ -65,6 +65,15 @@ class MultiAdminSeeder extends Seeder
             'pin' => $pinDefault,
             'role' => 'keuangan',
             'saldo' => 100000000,
+        ]);
+
+        Admin::create([
+            'nama_lengkap' => 'Admin Dreamland',
+            'username' => 'admin_dreamland',
+            'password' => $passwordDefault,
+            'pin' => $pinDefault,
+            'role' => 'dreamland',
+            'saldo' => 0,
         ]);
     }
 }

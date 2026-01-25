@@ -52,7 +52,7 @@
                 </a>
 
                 <div class="relative flex items-center justify-center">
-                    <a href="{{ route('scan') }}" wire:navigate
+                    <a href="{{ route('scan') }}"
                         class="absolute -top-6 bg-gradient-to-br from-blue-600 to-blue-700 text-white p-4 rounded-2xl shadow-lg shadow-blue-600/40 border-4 border-gray-50 transform transition-transform duration-200 active:scale-95 hover:-translate-y-1">
                         <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

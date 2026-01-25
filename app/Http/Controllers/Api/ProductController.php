@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Validator;
 use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver; // Kita pakai driver GD (bawaan PHP)
 use Illuminate\Support\Facades\Storage;
+use App\Models\Store;
+use App\Models\Admin;
 
 class ProductController extends Controller
 {
@@ -102,132 +104,111 @@ class ProductController extends Controller
             'harga' => 'required|numeric', // Ini Harga Modal Merchant
             'stok' => 'required|integer',
             'diskon' => 'nullable|integer|min:0|max:100',
-            'store_id' => 'nullable|exists:stores,id', // Null = Simart, Isi = Toko Sendiri
+            'store_id' => 'nullable|exists:stores,id',
             'is_preorder' => 'boolean',
             'po_estimasi' => 'required_if:is_preorder,true|date',
             'po_kuota' => 'required_if:is_preorder,true|integer',
-            // Lokasi Rak sekarang SELALU NULLABLE saat input awal (Tugas Admin Kasir nanti)
             'lokasi_rak' => 'nullable|string',
+            'gambar' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120', // Max 5MB
         ];
 
         $validator = Validator::make($request->all(), $rules);
         if ($validator->fails())
             return response()->json($validator->errors(), 400);
 
-        // 3. LOGIKA TOKO & PRE-ORDER
+        // 3. LOGIKA TOKO & HARGA (Tetap Sama)
         $targetStoreId = null;
 
         if ($request->filled('store_id')) {
             // --- KASUS A: JUAL DI TOKO SENDIRI ---
-
-            // Cek Kepemilikan
-            $cekToko = \App\Models\Store::where('id', $request->store_id)->where('user_id', $user->id)->first();
+            $cekToko = Store::where('id', $request->store_id)->where('user_id', $user->id)->first();
             if (!$cekToko)
                 return response()->json(['message' => 'Toko tidak valid'], 403);
 
             $targetStoreId = $request->store_id;
-
-            // Validasi: Toko Sendiri TIDAK BOLEH PO
             if ($request->boolean('is_preorder')) {
                 return response()->json(['message' => 'Toko sendiri tidak boleh jualan Pre-Order!'], 400);
             }
-
-            // Logika Harga: TIDAK ADA MARKUP
             $hargaModal = $request->harga;
             $hargaJual = $request->harga;
-
         } else {
             // --- KASUS B: JUAL DI SIMART (TITIP) ---
-
             $hargaModal = $request->harga;
-
-            // Logika Harga: MARKUP +1000 (Keuntungan Simart)
-            // Kecuali yang input adalah Admin Pusat (Simart sendiri), harga tetap.
-            if ($user instanceof \App\Models\Admin) {
+            if ($user instanceof Admin) {
                 $hargaJual = $hargaModal;
             } else {
-                // 1. Hitung Target Minimal (Modal + 100)
                 $targetReceive = $hargaModal + 100;
-
-                // 2. Cari Harga Jual Mentah (Target / 0.85)
-                // Kenapa 0.85? Karena 100% - 15% = 85%
                 $rawPrice = $targetReceive / 0.85;
-
-                // 3. Pembulatan ke atas kelipatan 500
-                // Contoh: ceil(3647 / 500) = ceil(7.29) = 8 * 500 = 4000
                 $hargaJual = ceil($rawPrice / 500) * 500;
             }
         }
 
-        // 4. LOGIKA BARCODE HYBRID
+        // 4. LOGIKA BARCODE
         $final_barcode = $request->filled('barcode') ? $request->barcode : 'SIS-' . mt_rand(100000, 999999);
 
-        // 5. LOGIKA UPLOAD GAMBAR (FIXED)
+        // 5. LOGIKA UPLOAD GAMBAR (REVISI: EXPLICIT NAMING)
         $namaFileGambar = null;
 
         if ($request->hasFile('gambar')) {
             $file = $request->file('gambar');
 
-            // Validasi ektensi manual biar aman
-            $ext = $file->getClientOriginalExtension();
-            $filename = uniqid() . '.' . $ext;
+            // Buat Nama Dasar Unik
+            $baseName = 'PROD-' . uniqid();
 
-            // --- A. SIMPAN ORIGINAL ---
-            // Gunakan Storage::disk('public')->putFileAs() agar 100% masuk ke folder public
-            // Hasil path: storage/app/public/products/originals/namafile.jpg
-            Storage::disk('public')->putFileAs('products/originals', $file, $filename);
-
-            // --- B. SIMPAN THUMBNAIL (RESIZE) ---
             try {
+                // Gunakan Intervention Image
                 $manager = new ImageManager(new Driver());
-                $image = $manager->read($file); // Baca file temp
 
-                $image->scale(width: 300); // Resize
+                // A. Proses Thumbnail (Resize & Convert ke WebP)
+                $imgThumb = $manager->read($file)->scale(width: 300)->toWebp(80);
 
-                // Tentukan encoder berdasarkan ekstensi file asli
-                if (in_array(strtolower($ext), ['jpg', 'jpeg'])) {
-                    $encoded = $image->toJpeg(80);
-                } elseif (strtolower($ext) === 'png') {
-                    $encoded = $image->toPng();
-                } else {
-                    $encoded = $image->toWebp(80); // Fallback modern
-                }
+                // B. Proses Original (Convert ke WebP biar hemat storage & konsisten)
+                $imgOriginal = $manager->read($file)->toWebp(90);
 
-                // Simpan hasil resize
-                Storage::disk('public')->put('products/thumbnails/' . $filename, (string) $encoded);
+                // Tentukan Nama File Akhir (Pasti .webp)
+                $finalName = $baseName . '.webp';
 
-                $namaFileGambar = $filename; // Sukses!
+                // Simpan Fisik
+                Storage::disk('public')->put('products/thumbnails/' . $finalName, (string) $imgThumb);
+                Storage::disk('public')->put('products/originals/' . $finalName, (string) $imgOriginal);
+
+                $namaFileGambar = $finalName;
 
             } catch (\Exception $e) {
-                // Jika resize gagal (misal server ga support GD), tetap simpan nama file
-                // tapi thumbnail pakai gambar original aja sebagai fallback
-                Storage::disk('public')->copy('products/originals/' . $filename, 'products/thumbnails/' . $filename);
-                $namaFileGambar = $filename;
+                // Fallback: Jika server gagal proses image, simpan original apa adanya
+                $ext = $file->getClientOriginalExtension();
+                $fallbackName = $baseName . '.' . $ext;
+
+                Storage::disk('public')->putFileAs('products/originals', $file, $fallbackName);
+                // Copy ke thumbnail juga biar gak error saat dipanggil
+                Storage::disk('public')->copy('products/originals/' . $fallbackName, 'products/thumbnails/' . $fallbackName);
+
+                $namaFileGambar = $fallbackName;
             }
         }
 
-        // 6. SIMPAN
+        // 6. SIMPAN DB
         $product = Product::create([
             'barcode' => $final_barcode,
             'nama_produk' => $request->nama_produk,
             'deskripsi' => $request->deskripsi,
-
-            'harga' => $hargaJual,       // Harga Tampil
-            'harga_modal' => $hargaModal,// Harga Asli Merchant
+            'harga' => $hargaJual,
+            'harga_modal' => $hargaModal,
             'diskon' => $request->diskon ?? 0,
             'stok' => $request->stok,
-            'lokasi_rak' => $request->lokasi_rak, // Merchant bebas kosongkan ini
-
+            'lokasi_rak' => $request->lokasi_rak,
             'is_preorder' => $request->boolean('is_preorder'),
             'po_estimasi' => $request->po_estimasi,
             'po_kuota' => $request->po_kuota,
-
-            'gambar' => $namaFileGambar,
+            'gambar' => $namaFileGambar, // Nama file sudah pasti sinkron dengan fisik
             'ingredients' => $request->ingredients,
             'seller_id' => $user->id,
             'seller_type' => get_class($user),
             'store_id' => $targetStoreId,
         ]);
+
+        // Refresh agar image_url (accessor) terload jika ada
+        $product->refresh();
 
         return response()->json(['message' => 'Produk berhasil ditambahkan', 'data' => $product], 201);
     }
@@ -252,81 +233,70 @@ class ProductController extends Controller
     {
         // 1. CARI PRODUK
         $product = Product::find($id);
-
-        if (!$product) {
+        if (!$product)
             return response()->json(['message' => 'Produk tidak ditemukan'], 404);
-        }
 
-        // 2. CEK KEPEMILIKAN (AUTHORIZATION)
-        // Hanya Pemilik (Seller) ATAU Admin yang boleh edit
+        // 2. CEK KEPEMILIKAN
         $user = $request->user();
-
-        // Logika: Jika user bukan admin DAN bukan pemilik produk ini -> Tolak
         if ($user->role !== 'admin' && $user->role !== 'kasir' && $product->seller_id !== $user->id) {
             return response()->json(['message' => 'Anda tidak berhak mengedit produk ini!'], 403);
         }
 
-        // 3. VALIDASI INPUT
-        // Perhatikan aturan 'unique' pada barcode. Kita harus mengecualikan ID produk ini sendiri.
+        // 3. VALIDASI
         $validator = Validator::make($request->all(), [
             'nama_produk' => 'sometimes|string|max:255',
-            'barcode' => 'sometimes|string|unique:products,barcode,' . $product->id, // Ignore ID sendiri
+            'barcode' => 'sometimes|string|unique:products,barcode,' . $product->id,
             'harga' => 'sometimes|numeric|min:0',
             'harga_modal' => 'sometimes|numeric|min:0',
             'stok' => 'sometimes|integer|min:0',
-            'gambar' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048', // Max 2MB
+            'gambar' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
             'store_id' => 'nullable|exists:stores,id'
         ]);
 
-        if ($validator->fails()) {
+        if ($validator->fails())
             return response()->json($validator->errors(), 400);
-        }
 
-        // 4. LOGIKA UPDATE GAMBAR (JIKA ADA GAMBAR BARU)
-        // Kita pakai nama gambar lama dulu sebagai default
-        $namaFileGambar = $product->gambar;
+        // 4. LOGIKA UPDATE GAMBAR (REVISI: EXPLICIT NAMING)
+        $namaFileGambar = $product->gambar; // Default pakai lama
 
         if ($request->hasFile('gambar')) {
-            // A. HAPUS GAMBAR LAMA (Agar storage tidak penuh sampah)
+            // A. Hapus Gambar Lama
             if ($product->gambar) {
                 Storage::disk('public')->delete('products/originals/' . $product->gambar);
                 Storage::disk('public')->delete('products/thumbnails/' . $product->gambar);
             }
 
-            // B. UPLOAD GAMBAR BARU (Copy logic dari function store)
+            // B. Upload Gambar Baru (Logic sama persis dengan Store)
             $file = $request->file('gambar');
-            $ext = $file->getClientOriginalExtension();
-            $filename = uniqid() . '.' . $ext;
+            $baseName = 'PROD-' . uniqid();
 
-            // Simpan Original
-            Storage::disk('public')->putFileAs('products/originals', $file, $filename);
-
-            // Simpan Thumbnail
             try {
                 $manager = new ImageManager(new Driver());
-                $image = $manager->read($file);
-                $image->scale(width: 300);
 
-                if (in_array(strtolower($ext), ['jpg', 'jpeg'])) {
-                    $encoded = $image->toJpeg(80);
-                } elseif (strtolower($ext) === 'png') {
-                    $encoded = $image->toPng();
-                } else {
-                    $encoded = $image->toWebp(80);
-                }
+                // Resize Thumbnail & Convert Original
+                $imgThumb = $manager->read($file)->scale(width: 300)->toWebp(80);
+                $imgOriginal = $manager->read($file)->toWebp(90);
 
-                Storage::disk('public')->put('products/thumbnails/' . $filename, (string) $encoded);
+                $finalName = $baseName . '.webp';
 
-                $namaFileGambar = $filename; // Update variabel nama file
+                Storage::disk('public')->put('products/thumbnails/' . $finalName, (string) $imgThumb);
+                Storage::disk('public')->put('products/originals/' . $finalName, (string) $imgOriginal);
+
+                $namaFileGambar = $finalName;
 
             } catch (\Exception $e) {
-                // Fallback jika resize gagal
-                Storage::disk('public')->copy('products/originals/' . $filename, 'products/thumbnails/' . $filename);
-                $namaFileGambar = $filename;
+                // Fallback
+                $ext = $file->getClientOriginalExtension();
+                $fallbackName = $baseName . '.' . $ext;
+
+                Storage::disk('public')->putFileAs('products/originals', $file, $fallbackName);
+                Storage::disk('public')->copy('products/originals/' . $fallbackName, 'products/thumbnails/' . $fallbackName);
+
+                $namaFileGambar = $fallbackName;
             }
         }
 
-        // 5. UPDATE DATA KE DATABASE
+        // 5. UPDATE DB
         $product->update([
             'nama_produk' => $request->input('nama_produk', $product->nama_produk),
             'barcode' => $request->input('barcode', $product->barcode),
@@ -334,10 +304,12 @@ class ProductController extends Controller
             'harga_modal' => $request->input('harga_modal', $product->harga_modal),
             'stok' => $request->input('stok', $product->stok),
             'deskripsi' => $request->input('deskripsi', $product->deskripsi),
-            'gambar' => $namaFileGambar, // Gunakan nama file baru (atau lama jika gak diubah)
+            'gambar' => $namaFileGambar,
             'store_id' => $request->input('store_id', $product->store_id),
-            // 'seller_id' jangan diupdate, karena pemilik tidak boleh berubah
         ]);
+
+        // Refresh data untuk response terbaru
+        $product->refresh();
 
         return response()->json([
             'message' => 'Produk berhasil diperbarui',

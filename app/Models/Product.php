@@ -75,7 +75,7 @@ class Product extends Model
         if ($this->gambar) {
             // PASTIKAN: Path ini sesuai dengan tempat kamu menyimpan file saat upload.
             // Kalau uploadnya sederhana, biasanya cuma 'storage/' . $this->gambar
-            return asset('storage/' . $this->gambar);
+            return asset('storage/products/thumbnails/' . $this->gambar);
         }
         // Gambar default kalau produk gak punya foto
         return 'https://ui-avatars.com/api/?name=' . urlencode($this->nama_produk) . '&background=random';

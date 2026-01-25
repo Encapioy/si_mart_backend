@@ -82,15 +82,16 @@ class StoreController extends Controller
         }
 
         // 4. Handle Gambar (Hapus lama, simpan baru)
+        // 4. Handle Gambar
         if ($request->hasFile('image')) {
-            // Hapus gambar lama jika ada di storage
-            if ($toko->image_path && Storage::disk('public')->exists($toko->image_path)) {
-                Storage::disk('public')->delete($toko->image_path);
+            // Hapus gambar lama (Pastikan nama kolom sesuai DB, misal: gambar)
+            if ($toko->gambar && Storage::disk('public')->exists($toko->gambar)) {
+                Storage::disk('public')->delete($toko->gambar);
             }
 
             // Upload gambar baru
             $path = $request->file('image')->store('stores', 'public');
-            $dataToUpdate['image_path'] = $path;
+            $dataToUpdate['gambar'] = $path;
         }
 
         // 5. Eksekusi Update

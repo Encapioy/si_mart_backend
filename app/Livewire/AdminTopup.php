@@ -8,6 +8,7 @@ use App\Models\Admin;
 use App\Models\TopUp;
 use App\Models\BalanceMutation;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth; // Tambahkan ini
 use Livewire\Attributes\Layout;
 use App\Services\NotificationService;
 
@@ -16,29 +17,30 @@ class AdminTopup extends Component
     // --- PROPERTIES FORM ---
     public $search = '';
     public $amount = '';        // Akan otomatis di-sanitize dari titik
-    public $cashier_id = '';
+    public $cashier_id = '';    // [UBAH] Akan diisi otomatis oleh system
     public $cashier_pin = '';
 
     // --- DATA ---
     public $usersFound = [];
-    public $selectedUserId = null; // Kita simpan ID-nya saja biar lebih ringan
-    public $selectedUserName = ''; // Untuk display di input search
-    public $cashiers = [];
+    public $selectedUserId = null;
+    public $selectedUserName = '';
+    // public $cashiers = []; // [HAPUS] Tidak perlu list kasir lagi
 
     // --- STATISTIK ---
     public $totalUangBeredar = 0;
 
     public function mount()
     {
-        // Ambil kasir (pastikan role sesuai database kamu)
-        $this->cashiers = Admin::where('role', 'kasir')->get();
+        // [UBAH LOGIKA] Tidak perlu ambil list kasir.
+        // Langsung ambil ID admin yang sedang login.
+        $this->cashier_id = Auth::guard('admin')->id();
+
         $this->totalUangBeredar = User::sum('saldo');
     }
 
-    // --- FITUR 2: AUTOCOMPLETE ---
+    // --- FITUR 2: AUTOCOMPLETE (TETAP SAMA) ---
     public function updatedSearch()
     {
-        // Jika user mengetik ulang, reset pilihan sebelumnya
         $this->selectedUserId = null;
 
         if (strlen($this->search) > 0) {
@@ -62,8 +64,8 @@ class AdminTopup extends Component
         if ($user) {
             $this->selectedUserId = $user->id;
             $this->selectedUserName = $user->nama_lengkap;
-            $this->search = $user->username; // Tampilkan username di input
-            $this->usersFound = []; // Tutup dropdown
+            $this->search = $user->username;
+            $this->usersFound = [];
         }
     }
 
@@ -74,17 +76,16 @@ class AdminTopup extends Component
         $this->validate([
             'search' => 'required',
             'amount' => 'required|numeric|min:1000',
-            'cashier_id' => 'required',
+            // 'cashier_id' => 'required', // [HAPUS] Tidak perlu validasi input user
             'cashier_pin' => 'required|digits:6',
         ], [
             'amount.min' => 'Minimal Top Up Rp 1.000',
             'cashier_pin.digits' => 'PIN harus 6 digit angka',
-            'cashier_id.required' => 'Pilih kasir terlebih dahulu'
+            // 'cashier_id.required' => 'Pilih kasir terlebih dahulu'
         ]);
 
         // 2. Pastikan User Dipilih/Valid
         if (!$this->selectedUserId) {
-            // Coba cari exact match jika user lupa klik dropdown
             $user = User::where('username', $this->search)->first();
             if ($user) {
                 $this->selectedUserId = $user->id;
@@ -96,28 +97,29 @@ class AdminTopup extends Component
         }
 
         // 3. [PENTING] CEK PIN SEBELUM MODAL MUNCUL
-        $kasir = Admin::find($this->cashier_id);
+        // [UBAH LOGIKA] Ambil Kasir dari Session Auth, bukan dari input ID
+        $kasir = Auth::guard('admin')->user();
 
-        // Cek 1: Kasir ada?
         if (!$kasir) {
-            $this->dispatch('show-error', message: 'Data Kasir error.');
+            $this->dispatch('show-error', message: 'Sesi Kasir Habis. Silakan login ulang.');
             return;
         }
 
-        // Cek 2: PIN Benar?
-        // Pastikan tipe data sama-sama string agar aman
+        // Cek PIN Benar? (Bandingkan input PIN dengan PIN Auth User)
+        // Asumsi di database PIN disimpan plain/hashed. Sesuaikan logic komparasinya.
+        // Jika pakai Hash::check, ganti logic dibawah.
+        // Disini kita pakai string compare sesuai kode lama kamu.
         if ((string) $kasir->pin !== (string) $this->cashier_pin) {
-            // Kirim error spesifik ke input PIN agar tulisan merah muncul
             $this->addError('cashier_pin', 'PIN Salah! Cek kembali.');
-            return; // STOP DISINI. Modal tidak akan muncul.
+            return;
         }
 
         // 4. Jika PIN Benar, Baru Munculkan Modal
         $this->dispatch(
             'show-confirmation-modal',
             username: $this->selectedUserName,
-            amount: $this->amount, // Kirim angka murni (tanpa titik) ke JS
-            cashier_name: $kasir->nama_lengkap // Optional
+            amount: $this->amount,
+            cashier_name: $kasir->nama_lengkap // Nama kasir yang login
         );
     }
 
@@ -127,14 +129,17 @@ class AdminTopup extends Component
         // Double Check User
         if (!$this->selectedUserId)
             return;
+
         $user = User::find($this->selectedUserId);
         if (!$user)
             return;
 
         // Double Check Kasir (Keamanan Ganda)
-        $kasir = Admin::find($this->cashier_id);
+        // [UBAH LOGIKA] Pakai Auth lagi
+        $kasir = Auth::guard('admin')->user();
+
         if (!$kasir || (string) $kasir->pin !== (string) $this->cashier_pin) {
-            $this->dispatch('show-error', message: 'Verifikasi Gagal.');
+            $this->dispatch('show-error', message: 'Verifikasi Gagal / Sesi Habis.');
             return;
         }
 
@@ -149,7 +154,7 @@ class AdminTopup extends Component
                 'user_id' => $user->id,
                 'amount' => $this->amount,
                 'status' => 'approved',
-                'admin_id' => $kasir->id,
+                'admin_id' => $kasir->id, // ID Kasir yang login
                 'bukti_transfer' => 'MANUAL_CASH',
             ]);
 
@@ -160,7 +165,7 @@ class AdminTopup extends Component
                 'amount' => $this->amount,
                 'current_balance' => $user->saldo,
                 'category' => 'topup',
-                'description' => 'Setoran Tunai via Kasir ' . explode(' ', $kasir->username)[0],
+                'description' => 'Setoran Tunai via Kasir ' . explode(' ', $kasir->nama_lengkap)[0], // Gunakan nama_lengkap biar rapi
                 'related_user_id' => $kasir->id
             ]);
 
@@ -178,7 +183,7 @@ class AdminTopup extends Component
             // D. Sukses & Reset
             $targetName = $user->nama_lengkap;
 
-            // Reset Form tapi biarkan Kasir terpilih (biar gak capek milih lagi kalau kasirnya sama)
+            // Reset Form (Kecuali cashier_id karena itu Auth)
             $this->reset(['search', 'amount', 'cashier_pin', 'selectedUserId', 'usersFound', 'selectedUserName']);
 
             // Update Statistik

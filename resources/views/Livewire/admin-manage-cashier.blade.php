@@ -66,10 +66,10 @@
                             <td class="p-5 pl-6">
                                 <div class="flex items-center gap-4">
                                     <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 text-blue-700 flex items-center justify-center font-bold text-sm shadow-sm">
-                                        {{ substr($admin->username, 0, 2) }}
+                                        {{ substr($admin->nama_lengkap, 0, 1) }}
                                     </div>
                                     <div>
-                                        <p class="font-bold text-slate-800 text-sm">{{ $admin->username }}</p>
+                                        <p class="font-bold text-slate-800 text-sm">{{ $admin->nama_lengkap }}</p>
                                         <p class="text-xs text-slate-500 flex items-center gap-1">
                                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
                                             {{ $admin->username }}

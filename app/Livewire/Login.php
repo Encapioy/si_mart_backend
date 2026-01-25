@@ -21,6 +21,16 @@ class Login extends Component
         // 1. Cek Admin
         if (Auth::guard('admin')->attempt($credentials, true)) {
             session()->regenerate();
+
+            // AMBIL DATA ADMIN YANG BARU LOGIN
+            $admin = Auth::guard('admin')->user();
+
+            // LOGIKA REDIRECT BERDASARKAN ROLE
+            if ($admin->role === 'kasir') {
+                return redirect()->route('admin.topup'); // Langsung ke halaman topup
+            }
+
+            // Default (Admin Pusat / Dreamland)
             return redirect()->route('admin.dashboard');
         }
 

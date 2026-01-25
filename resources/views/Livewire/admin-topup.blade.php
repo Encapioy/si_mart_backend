@@ -10,6 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -30,13 +31,18 @@
 
         <div class="px-8 pt-8 pb-4 text-center">
             <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Top Up Saldo User</h1>
-            <p class="text-slate-500 text-sm mt-1">Admin Panel</p>
+            {{-- Menampilkan info Kasir yang sedang login --}}
+            <p class="text-slate-500 text-sm mt-1 flex items-center justify-center gap-1">
+                <i class="fa-solid fa-user-shield text-emerald-500"></i>
+                Kasir: <span
+                    class="font-bold text-slate-700">{{ Auth::guard('admin')->user()->nama_lengkap ?? 'Unknown' }}</span>
+            </p>
         </div>
 
         <div class="px-8 pb-8">
             <form wire:submit.prevent="triggerConfirm" autocomplete="off" class="space-y-5">
 
-                {{-- 1. PENCARIAN SISWA --}}
+                {{-- 1. PENCARIAN SISWA (TETAP SAMA) --}}
                 <div class="relative z-50">
                     <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Cari Akun
                         User</label>
@@ -76,32 +82,19 @@
                     @error('search') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                 </div>
 
-                {{-- 2. NOMINAL (Dengan Format Rupiah & Keyboard Angka) --}}
+                {{-- 2. NOMINAL (TETAP SAMA - Logic Alpine tidak diganggu) --}}
                 <div x-data="{
-                    // Hubungkan dengan variabel 'amount' di Livewire
                     nominal: @entangle('amount'),
-
-                    // Fungsi untuk memformat angka jadi Rupiah (titik)
                     formatRupiah(angka) {
                         if (!angka) return '';
                         return angka.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
                     },
-
-                    // Fungsi saat user mengetik
                     handleInput(e) {
-                        // 1. Ambil apa yang diketik, buang semua karakter selain angka
                         let rawValue = e.target.value.replace(/[^0-9]/g, '');
-
-                        // 2. Kirim angka murni ke Livewire (Backend)
                         this.nominal = rawValue;
-
-                        // 3. Update tampilan di input jadi ada titiknya
                         e.target.value = this.formatRupiah(rawValue);
                     },
-
-                    // Fungsi inisialisasi (agar saat load atau klik tombol quick button, angka terformat)
                     init() {
-                        // Pantau perubahan dari Livewire (misal klik tombol 50k)
                         this.$watch('nominal', (value) => {
                             if (this.$refs.inputNominal.value.replace(/\./g, '') !== value) {
                                 this.$refs.inputNominal.value = this.formatRupiah(value);
@@ -111,10 +104,10 @@
                 }">
                     <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Nominal</label>
                     <div class="relative">
-                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-lg">Rp</span>
-
-                        {{-- INPUT UTAMA --}}
-                        <input type="text" x-ref="inputNominal" @input="handleInput" :value="formatRupiah(nominal)" inputmode="numeric"
+                        <span
+                            class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-lg">Rp</span>
+                        <input type="text" x-ref="inputNominal" @input="handleInput" :value="formatRupiah(nominal)"
+                            inputmode="numeric"
                             class="block w-full pl-12 pr-4 py-3.5 bg-white border-2 border-slate-100 rounded-xl text-xl font-extrabold text-slate-800 focus:ring-0 focus:border-emerald-500 transition-colors outline-none placeholder:text-slate-200"
                             placeholder="0">
                     </div>
@@ -122,7 +115,6 @@
                     {{-- Quick Buttons --}}
                     <div class="flex gap-2 mt-2">
                         @foreach([10000, 20000, 50000, 100000] as $amt)
-                            {{-- Saat diklik, ini akan update 'amount' di Livewire -> Alpine mendeteksi -> Input terupdate --}}
                             <button type="button" wire:click="$set('amount', '{{ $amt }}')"
                                 class="flex-1 py-2 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-emerald-500 hover:text-white transition-colors">
                                 {{ number_format($amt / 1000, 0) }}k
@@ -132,34 +124,26 @@
                     @error('amount') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                 </div>
 
-                {{-- 3. VERIFIKASI KASIR --}}
-                <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 lg:flex gap-3 ">
-                    <div class="lg:w-1/2 w-full">
-                        <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Kasir</label>
-                        <select wire:model="cashier_id"
-                            class="w-full bg-white border-slate-200 rounded-lg text-xs py-2 font-bold text-slate-700 focus:border-emerald-500 outline-none">
-                            <option value="">Pilih...</option>
-                            @foreach($cashiers as $c)
-                                <option value="{{ $c->id }}">{{ explode(' ', $c->username)[0] }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="lg:w-1/2 w-full mt-3 lg:mt-0">
-                        <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">PIN</label>
+                {{-- 3. VERIFIKASI KASIR (UBAH: Hapus Dropdown, Sisa PIN Saja) --}}
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase mb-2 block text-center">
+                        KONFIRMASI PIN ANDA
+                    </label>
 
-                        {{-- UPDATE: Inputmode numeric agar muncul keyboard angka --}}
+                    <div class="relative max-w-[200px] mx-auto">
                         <input type="password" wire:model="cashier_pin" maxlength="6" inputmode="numeric"
                             pattern="[0-9]*"
-                            class="w-full bg-white border border-slate-200 rounded-lg py-2 text-center text-xs font-bold tracking-widest focus:border-emerald-500 outline-none"
-                            placeholder="******">
+                            class="w-full bg-white border border-slate-200 rounded-lg py-3 text-center text-lg font-bold tracking-[0.5em] focus:border-emerald-500 outline-none placeholder:text-slate-200 shadow-sm"
+                            placeholder="••••••">
                     </div>
+
+                    @error('cashier_pin')
+                        <span
+                            class="text-red-500 text-xs text-center block font-bold bg-red-50 py-1 rounded-lg mt-2 animate-pulse">
+                            {{ $message }}
+                        </span>
+                    @enderror
                 </div>
-                {{-- Error Message PIN akan muncul disini jika salah --}}
-                @error('cashier_pin') <span
-                    class="text-red-500 text-xs text-center block font-bold bg-red-50 py-1 rounded-lg">{{ $message }}</span>
-                @enderror
-                @error('cashier_id') <span class="text-red-500 text-xs text-center block">{{ $message }}</span>
-                @enderror
 
                 {{-- 4. TOMBOL SUBMIT --}}
                 <button type="submit" wire:loading.attr="disabled" wire:target="triggerConfirm"
@@ -170,8 +154,8 @@
                         <span>PROSES SEKARANG</span>
                     </div>
 
-                    <div wire:loading.class.remove="hidden" wire:target="triggerConfirm" class="hidden flex items-center justify-center gap-2"
-                        style="display: none;">
+                    <div wire:loading.class.remove="hidden" wire:target="triggerConfirm"
+                        class="hidden flex items-center justify-center gap-2" style="display: none;">
                         <i class="fa-solid fa-circle-notch fa-spin"></i>
                         <span>MEMVERIFIKASI...</span>
                     </div>
@@ -181,7 +165,7 @@
         </div>
     </div>
 
-    {{-- Script SweetAlert --}}
+    {{-- Script SweetAlert (TETAP SAMA) --}}
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     @script
     <script>
@@ -197,12 +181,24 @@
 
             Livewire.on('show-confirmation-modal', (event) => {
                 swalConfig.fire({
-                    title: 'Konfirmasi?',
-                    html: `Topup <b>Rp ${new Intl.NumberFormat('id-ID').format(event.amount)}</b><br>ke <b>${event.username}</b>?`,
+                    title: 'Konfirmasi Top Up?',
+                    html: `
+                        <div class="bg-slate-50 p-3 rounded-lg text-sm mb-2">
+                            <div class="flex justify-between mb-1">
+                                <span class="text-slate-500">Kasir:</span>
+                                <span class="font-bold">${event.cashier_name}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-500">Penerima:</span>
+                                <span class="font-bold">${event.username}</span>
+                            </div>
+                        </div>
+                        <h2 class="text-2xl font-bold text-emerald-600">Rp ${new Intl.NumberFormat('id-ID').format(event.amount)}</h2>
+                    `,
                     icon: 'question',
                     showCancelButton: true,
-                    confirmButtonText: 'YA (Enter)',
-                    cancelButtonText: 'Batal',
+                    confirmButtonText: 'YA, PROSES',
+                    cancelButtonText: 'BATAL',
                     reverseButtons: true,
                     focusConfirm: true
                 }).then((result) => {

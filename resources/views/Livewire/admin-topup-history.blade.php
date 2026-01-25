@@ -59,7 +59,7 @@
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-2">
                                     <span class="text-slate-600 font-bold text-sm">
-                                        {{ $item->admin->username ?? 'Sistem' }}
+                                        {{ $item->admin->nama_lengkap ?? 'Sistem' }}
                                     </span>
                                 </div>
                             </td>

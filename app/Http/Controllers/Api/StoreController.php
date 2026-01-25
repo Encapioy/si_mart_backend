@@ -62,7 +62,7 @@ class StoreController extends Controller
 
         // 2. Validasi
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
+            'name' => 'nullable|string|max:255',
             'description' => 'nullable|string',
             'address' => 'nullable|string',
             'is_open' => 'nullable',

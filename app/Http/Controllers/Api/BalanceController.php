@@ -112,57 +112,52 @@ class BalanceController extends Controller
         $request->validate([
             'target_identity_code' => 'required|string',
             'amount' => 'required|integer|min:1000',
-            'pin' => 'required|string', // Validasi size bisa dihandle di logic bawah
+            'pin' => 'required|string',
         ]);
 
         $sender = $request->user();
 
-        // 1. Cek PIN Pengirim (Pakai trim & string casting biar aman)
+        // 1. Cek PIN
         if (trim((string) $sender->pin) !== trim((string) $request->pin)) {
             return response()->json(['message' => 'PIN Salah'], 401);
         }
 
         // 2. Cek Saldo
         if ($sender->saldo < $request->amount) {
-
-            // LOGIC TAMBAHAN: Cek apakah minus?
             if ($sender->saldo < 0) {
                 return response()->json([
                     'message' => 'Akun Anda memiliki tunggakan (Saldo Minus). Silakan Top Up untuk melunasi.'
                 ], 400);
             }
-
             return response()->json(['message' => 'Saldo tidak cukup!'], 400);
         }
 
-        // 3. Cari Penerima (Update: Tambah pencarian via No HP)
+        // 3. Cari Penerima
         $kode = $request->target_identity_code;
         $receiver = User::where('member_id', $kode)
             ->orWhere('username', $kode)
             ->orWhere('nfc_id', $kode)
-            ->orWhere('no_hp', $kode) // <--- TAMBAHAN: Bisa transfer via No HP
+            ->orWhere('no_hp', $kode)
             ->first();
 
-        // Validasi Penerima
         if (!$receiver)
             return response()->json(['message' => 'Penerima tidak ditemukan'], 404);
         if ($receiver->id == $sender->id)
             return response()->json(['message' => 'Tidak bisa transfer ke diri sendiri'], 400);
 
-        // 4. EKSEKUSI TRANSFER
-        return DB::transaction(function () use ($sender, $receiver, $request) {
+        // 4. EKSEKUSI TRANSFER (Hapus 'return' di sini, tampung ke variabel $trx)
+        $trx = DB::transaction(function () use ($sender, $receiver, $request) {
 
             // A. PENGIRIM (Debit)
             $sender->saldo -= $request->amount;
             $sender->save();
 
-            // PERBAIKAN DI SINI: Category harus 'transfer_out' (bukan 'transfer')
             BalanceMutation::create([
                 'user_id' => $sender->id,
                 'type' => 'debit',
                 'amount' => $request->amount,
                 'current_balance' => $sender->saldo,
-                'category' => 'transfer_out', // Kategori spesifik
+                'category' => 'transfer_out',
                 'description' => 'Transfer ke ' . $receiver->nama_lengkap,
                 'related_user_id' => $receiver->id
             ]);
@@ -171,59 +166,55 @@ class BalanceController extends Controller
             $receiver->saldo += $request->amount;
             $receiver->save();
 
-            // PERBAIKAN DI SINI: Category harus 'transfer_in' (bukan 'transfer')
             BalanceMutation::create([
                 'user_id' => $receiver->id,
                 'type' => 'credit',
                 'amount' => $request->amount,
                 'current_balance' => $receiver->saldo,
-                'category' => 'transfer_in', // Kategori spesifik
+                'category' => 'transfer_in',
                 'description' => 'Terima saldo dari ' . $sender->nama_lengkap,
                 'related_user_id' => $sender->id
             ]);
 
-            $trx = Transaction::create([
+            // C. Simpan Transaksi (Sudah ada 'type' => 'transfer', AMAN)
+            return Transaction::create([
                 'transaction_code' => 'TRF-' . time() . rand(100, 999),
-                'user_id' => $sender->id, // Transaksi milik pengirim
+                'user_id' => $sender->id,
                 'total_bayar' => $request->amount,
-                'status' => 'paid',
-                'type' => 'transfer', // Tipe umum untuk admin
+                'type' => 'transfer',
                 'description' => 'Transfer ke ' . $receiver->nama_lengkap,
+                'status' => 'paid',
                 'tanggal_transaksi' => now(),
             ]);
-
-            // Kembalikan data transaksi untuk dipakai notifikasi
-            return $trx;
         });
 
-        // 5. KIRIM NOTIFIKASI (Di luar Transaction biar ringan)
-        // Pastikan transaksi berhasil ($result tidak null)
-        if ($result) {
+        // 5. KIRIM NOTIFIKASI
+        // Gunakan variabel $trx hasil dari DB::transaction di atas
+        if ($trx) {
             $formattedAmount = number_format($request->amount, 0, ',', '.');
-            $trxId = $result->id; // ID Transaksi dari return DB::transaction
 
-            // A. Notifikasi ke PENGIRIM (Uang Keluar)
+            // A. Notifikasi ke PENGIRIM
             NotificationService::send(
                 $sender->id,
                 'Transfer Berhasil',
                 "Anda berhasil mengirim Rp $formattedAmount ke {$receiver->nama_lengkap}.",
                 'transaction',
                 [
-                    'transaction_id' => $trxId,
+                    'transaction_id' => $trx->id,
                     'amount' => $request->amount,
                     'counterparty' => $receiver->nama_lengkap,
                     'action' => 'transfer_out'
                 ]
             );
 
-            // B. Notifikasi ke PENERIMA (Uang Masuk)
+            // B. Notifikasi ke PENERIMA
             NotificationService::send(
                 $receiver->id,
                 'Dana Masuk',
                 "Anda menerima Rp $formattedAmount dari {$sender->nama_lengkap}.",
                 'transaction',
                 [
-                    'transaction_id' => $trxId,
+                    'transaction_id' => $trx->id,
                     'amount' => $request->amount,
                     'counterparty' => $sender->nama_lengkap,
                     'action' => 'transfer_in'
@@ -231,12 +222,13 @@ class BalanceController extends Controller
             );
         }
 
-        // 6. RESPONSE JSON
+        // 6. RESPONSE JSON (Baru return di sini)
         return response()->json([
             'message' => 'Transfer Berhasil!',
             'amount' => $request->amount,
             'sisa_saldo_anda' => $sender->saldo,
-            'penerima' => $receiver->nama_lengkap
+            'penerima' => $receiver->nama_lengkap,
+            'transaction_code' => $trx->transaction_code // Opsional: Balikin kode transaksi
         ]);
     }
 

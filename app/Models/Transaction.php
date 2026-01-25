@@ -16,6 +16,8 @@ class Transaction extends Model
         'store_id',
         'target_user_id',
         'total_bayar',
+        'type',
+        'description',
         'tanggal_transaksi',
         'expired_at'
     ];

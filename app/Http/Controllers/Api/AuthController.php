@@ -290,17 +290,20 @@ class AuthController extends Controller
 
         // B. LOGIC UNTUK WEB ADMIN / BROWSER (Session)
 
-        // 1. Logout dari guard web
+        // 1. Logout dari Guard 'web' (User Biasa)
         Auth::guard('web')->logout();
 
-        // 2. Hapus sesi browser (PENTING)
+        // 2. Logout dari Guard 'admin' (Admin/Kasir)
+        Auth::guard('admin')->logout();
+
+        // 3. Invalidate Session (Matikan sesi saat ini agar tidak bisa dipakai ulang)
         $request->session()->invalidate();
 
-        // 3. Regenerate Token CSRF (Untuk keamanan)
+        // 4. Regenerate Token (Keamanan CSRF)
         $request->session()->regenerateToken();
 
-        // 4. Lempar ke halaman login
-        return redirect()->route('login');
+        // 5. Redirect ke Halaman Login atau Landing Page
+        return redirect()->route('login')->with('success', 'Anda berhasil logout.');
     }
 
     // 4. CEK PROFIL SAYA

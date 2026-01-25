@@ -12,6 +12,20 @@
         </div>
     </div>
 
+    {{-- [BARU] INFORMASI SALDO PENGIRIM --}}
+    <div class="flex justify-end mb-2 -mt-4">
+        <div
+            class="bg-slate-200/50 border border-slate-200 backdrop-blur-sm px-3 py-1.5 rounded-lg flex items-center gap-2">
+            <div class="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center">
+                <i class="fa-solid fa-wallet text-[10px] text-emerald-600"></i>
+            </div>
+            <div class="text-xs text-slate-500 font-medium">
+                Saldo: <span class="text-slate-800 font-bold font-mono">Rp
+                    {{ number_format(auth()->user()->saldo, 0, ',', '.') }}</span>
+            </div>
+        </div>
+    </div>
+
     <form wire:submit.prevent="isProcessing = true; $wire.processTransfer().finally(() => { isProcessing = false })" class="flex-1 flex flex-col"
     x-data="{
           isProcessing: false,

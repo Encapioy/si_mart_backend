@@ -48,7 +48,7 @@
                 </div>
 
                 <div class="flex-1 min-w-0">
-                    <h3 class="text-sm font-bold text-gray-900 truncate">
+                    <h3 class="text-sm font-bold text-gray-900">
                         {{ $item->description }}
                     </h3>
                     <div class="flex items-center gap-2 mt-0.5">

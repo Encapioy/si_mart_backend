@@ -27,7 +27,7 @@ class AppVersionController extends Controller
 
                 // 4. Gambar Ilustrasi Update
                 // Pastikan kamu taruh gambar 'update-banner.png' di folder public/img/
-                'image_update' => asset('img/update-banner.png'),
+                'image_update' => asset('img/update-banner.jpg'),
 
                 // 5. Link Toko
                 'download_url' => 'https://drive.google.com/drive/folders/1gc-pH9oYvdwCWIGLKtjZvsna-RqJ8n0R?usp=sharing'

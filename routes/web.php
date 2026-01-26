@@ -27,9 +27,21 @@ use App\Livewire\AdminUserVerification;
 
 // 1. Landing Page
 Route::get('/', function () {
+    // 1. Cek apakah ADMIN yang sedang login?
+    if (Auth::guard('admin')->check()) {
+        // Jika role admin punya dashboard khusus (misal kasir beda dengan admin pusat)
+        // Kamu bisa tambahkan logika if($admin->role == 'kasir') disini jika perlu
+        return redirect()->route('admin.dashboard');
+    }
+
+    // 2. Cek apakah USER BIASA (Siswa/Ortu) yang sedang login?
+    if (Auth::guard('web')->check()) {
+        return redirect()->route('dashboard');
+    }
+
+    // 3. Jika BELUM LOGIN, tampilkan Landing Page
     return view('landing');
 })->name('home');
-
 // 2. Login Page
 Route::get('/register', Register::class)->name('register');
 Route::get('/login', Login::class)->name('login');

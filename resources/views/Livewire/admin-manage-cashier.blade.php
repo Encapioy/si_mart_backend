@@ -302,14 +302,14 @@
             </div>
 
             {{-- List (Scrollable Area) --}}
-            {{-- Tambahkan: wire:loading.class="overflow-hidden" --}}
-            {{-- Efek: Saat loading (next/prev page), scrollbar akan hilang/dikunci --}}
-            <div class="overflow-y-auto flex-1 p-0 relative" wire:loading.class="overflow-hidden"
-                wire:target="gotoPage, nextPage, previousPage">
+            {{-- PERBAIKAN: --}}
+            {{-- 1. Hapus wire:target agar loading mendeteksi otomatis proses apapun --}}
+            {{-- 2. Pakai !overflow-hidden (tanda seru) untuk paksa kunci scroll --}}
+            <div class="overflow-y-auto flex-1 p-0 relative" wire:loading.class="!overflow-hidden">
 
                 {{-- Loading Overlay --}}
-                {{-- Kita gunakan z-50 agar benar-benar menutupi tabel --}}
-                <div wire:loading.flex wire:target="gotoPage, nextPage, previousPage"
+                {{-- PERBAIKAN: Hapus wire:target di sini juga, dan tambah wire:key agar elemen tidak nyangkut --}}
+                <div wire:loading.flex wire:key="loading-overlay"
                     class="absolute inset-0 bg-white/80 z-50 flex items-center justify-center backdrop-blur-sm cursor-wait">
                     <div class="flex flex-col items-center gap-2">
                         <svg class="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none"
@@ -334,7 +334,8 @@
                         </thead>
                         <tbody class="divide-y divide-slate-100">
                             @foreach($historyTopups as $history)
-                                <tr>
+                                {{-- Tambah wire:key pada baris agar rendering stabil --}}
+                                <tr wire:key="history-{{ $history->id }}">
                                     <td class="p-4 pl-6 text-slate-500">{{ $history->created_at->format('d M Y, H:i') }}</td>
                                     <td class="p-4">
                                         <p class="font-bold text-slate-800">{{ $history->user->username ?? 'User Hapus' }}</p>

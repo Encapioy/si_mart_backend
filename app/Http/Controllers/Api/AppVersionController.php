@@ -30,8 +30,7 @@ class AppVersionController extends Controller
                 'image_update' => asset('img/update-banner.png'),
 
                 // 5. Link Toko
-                'play_store_url' => 'https://play.google.com/store/apps/details?id=com.sekolahimpian.smartsimart',
-                'app_store_url' => 'https://apps.apple.com/id/app/smart-si-mart/id123456789'
+                'download_url' => 'https://drive.google.com/drive/folders/1gc-pH9oYvdwCWIGLKtjZvsna-RqJ8n0R?usp=sharing'
             ]
         ]);
     }

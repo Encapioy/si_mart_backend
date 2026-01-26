@@ -269,39 +269,55 @@
     </div>
 
     {{-- ========================================== --}}
-    {{-- MODAL 2: RIWAYAT TRANSAKSI                 --}}
+    {{-- MODAL 2: RIWAYAT TRANSAKSI --}}
     {{-- ========================================== --}}
-    <div x-data="{ open: false }"
-         x-on:open-history-modal.window="open = true"
-         x-on:keydown.escape.window="open = false"
-         x-show="open"
-         style="display: none;"
-         class="fixed inset-0 z-[60] flex items-center justify-center px-4">
+    <div x-data="{ open: @entangle('showHistoryModal') }" x-on:open-history-modal.window="open = true"
+        x-on:keydown.escape.window="open = false; $wire.closeHistory()" x-show="open" style="display: none;"
+        class="fixed inset-0 z-[60] flex items-center justify-center px-4">
 
         {{-- Backdrop --}}
-        <div x-show="open" x-transition.opacity class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="open = false"></div>
+        <div x-show="open" x-transition.opacity class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            @click="open = false; $wire.closeHistory()"></div>
 
         {{-- Modal Content --}}
-        <div x-show="open" x-transition.scale class="relative bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden max-h-[80vh] flex flex-col">
+        <div x-show="open" x-transition.scale
+            class="relative bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
 
             {{-- Header --}}
-            <div class="p-5 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+            <div class="p-5 border-b border-slate-100 bg-slate-50 flex justify-between items-center shrink-0">
                 <div>
                     <h3 class="font-bold text-lg text-slate-800">Riwayat Topup</h3>
-                    @if($selectedCashier)
-                        <p class="text-xs text-slate-500">Kasir: <span class="font-bold text-blue-600">{{ $selectedCashier->username }}</span> (10 Approved Terakhir)</p>
+                    @if($selectedCashierId)
+                        <p class="text-xs text-slate-500">
+                            Kasir: <span class="font-bold text-blue-600">{{ $selectedCashierName }}</span>
+                        </p>
                     @endif
                 </div>
-                <button @click="open = false" class="text-slate-400 hover:text-slate-600 transition">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                <button @click="open = false; $wire.closeHistory()" class="text-slate-400 hover:text-slate-600 transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
                 </button>
             </div>
 
-            {{-- List --}}
-            <div class="overflow-y-auto p-0 flex-1">
-                @if(count($historyTopups) > 0)
+            {{-- List (Scrollable Area) --}}
+            <div class="overflow-y-auto flex-1 p-0 relative">
+                {{-- Loading State saat ganti halaman pagination --}}
+                <div wire:loading.flex wire:target="gotoPage, nextPage, previousPage"
+                    class="absolute inset-0 bg-white/80 z-10 flex items-center justify-center backdrop-blur-sm">
+                    <svg class="animate-spin h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none"
+                        viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                        </path>
+                    </svg>
+                </div>
+
+                @if($selectedCashierId && count($historyTopups) > 0)
                     <table class="w-full text-left text-sm">
-                        <thead class="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
+                        <thead class="bg-slate-50 text-slate-500 font-bold border-b border-slate-100 sticky top-0 z-0">
                             <tr>
                                 <th class="p-4 pl-6">Tanggal</th>
                                 <th class="p-4">User</th>
@@ -325,15 +341,27 @@
                     </table>
                 @else
                     <div class="p-10 text-center text-slate-400 flex flex-col items-center">
-                        <svg class="w-12 h-12 mb-2 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                        <svg class="w-12 h-12 mb-2 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2">
+                            </path>
+                        </svg>
                         <p>Belum ada riwayat transaksi approved.</p>
                     </div>
                 @endif
             </div>
 
-            {{-- Footer --}}
-            <div class="p-4 bg-slate-50 border-t border-slate-100 text-right">
-                <button @click="open = false" class="px-4 py-2 bg-white border border-slate-200 rounded-lg text-slate-600 font-medium hover:bg-slate-100 transition text-sm">
+            {{-- Footer Pagination --}}
+            @if($selectedCashierId && count($historyTopups) > 0)
+                <div class="p-4 bg-slate-50 border-t border-slate-100 shrink-0">
+                    {{-- Pagination Links (Custom View Minimalis) --}}
+                    {{ $historyTopups->links() }}
+                </div>
+            @endif
+
+            <div class="p-4 bg-white border-t border-slate-100 text-right shrink-0 md:hidden">
+                <button @click="open = false; $wire.closeHistory()"
+                    class="w-full px-4 py-2 bg-slate-100 border border-slate-200 rounded-lg text-slate-600 font-medium hover:bg-slate-200 transition text-sm">
                     Tutup
                 </button>
             </div>

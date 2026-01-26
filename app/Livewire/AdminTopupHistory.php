@@ -9,6 +9,7 @@ use Livewire\Attributes\Layout;
 use App\Models\User;
 use App\Models\BalanceMutation;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth; // <--- JANGAN LUPA IMPORT INI
 
 class AdminTopupHistory extends Component
 {
@@ -21,7 +22,7 @@ class AdminTopupHistory extends Component
         if (!$topup)
             return;
 
-        // Jika status bukan approved (misal pending/failed), hapus saja tanpa cek saldo
+        // Jika status bukan approved, hapus saja
         if ($topup->status != 'approved') {
             $topup->delete();
             $this->dispatch('show-success', message: 'Data sampah dihapus.');
@@ -30,16 +31,14 @@ class AdminTopupHistory extends Component
 
         $user = User::find($topup->user_id);
 
-        // --- LOGIC BARU: CEK SALDO USER ---
+        // Cek Saldo User
         if ($user->saldo < $topup->amount) {
-            // Kirim notif error ke layar admin
             $this->dispatch('show-error', message: 'GAGAL: Saldo User tidak cukup! Uang TopUp sudah terpakai.');
-            return; // BERHENTI DI SINI
+            return;
         }
 
-        // Jika lolos pengecekan, baru eksekusi
+        // Eksekusi Pembatalan
         DB::transaction(function () use ($topup, $user) {
-
             // 1. Tarik Saldo
             $user->saldo -= $topup->amount;
             $user->save();
@@ -64,12 +63,24 @@ class AdminTopupHistory extends Component
     #[Layout('components.layouts.admin')]
     public function render()
     {
-        // Ambil data dari tabel TopUp
-        // Load relasi 'user' (santri) dan 'admin' (kasir) biar query ringan
-        $history = TopUp::with(['user', 'admin'])
-            ->where('status', 'approved') // Hanya yang sukses
-            ->latest()
-            ->paginate(10);
+        // 1. Ambil Admin yang sedang login
+        $currentAdmin = Auth::guard('admin')->user();
+
+        // 2. Mulai Query Dasar
+        $query = TopUp::with(['user', 'admin'])
+            ->where('status', 'approved');
+
+        // 3. LOGIKA SCOPE DATA BERDASARKAN ROLE
+        // Jika role-nya 'kasir', filter hanya transaksi miliknya
+        if ($currentAdmin->role === 'kasir') {
+            $query->where('executor_id', $currentAdmin->id);
+        }
+
+        // Catatan: Jika role 'pusat', 'dev', atau 'keuangan',
+        // kode di atas dilewati, jadi otomatis menampilkan ALL data.
+
+        // 4. Eksekusi Query
+        $history = $query->latest()->paginate(10);
 
         return view('Livewire.admin-topup-history', [
             'history' => $history

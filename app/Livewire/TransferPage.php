@@ -60,9 +60,14 @@ class TransferPage extends Component
         $this->amount = (int) str_replace('.', '', $this->amount);
 
         // 2. Validasi Input
+        // 2. Validasi Input
         $this->validate([
-            'amount' => 'required|numeric|min:1000',
+            // Tambahkan max digits
+            'amount' => 'required|numeric|min:1000|max:999999999999999',
             'pin' => 'required',
+        ], [
+            'amount.max' => 'Nominal transfer terlalu besar!',
+            'amount.min' => 'Minimal transfer Rp 1.000',
         ]);
 
         $sender = Auth::user();

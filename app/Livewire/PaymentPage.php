@@ -56,9 +56,15 @@ class PaymentPage extends Component
         $this->amount = str_replace('.', '', $this->amount);
 
         // 2. Validasi Input
+        // 2. Validasi Input
         $this->validate([
-            'amount' => 'required|numeric|min:1000',
+            // Tambahkan max digits agar tidak error overflow di database
+            'amount' => 'required|numeric|min:1000|max:999999999999999',
             'pin' => 'required',
+        ], [
+            // Custom pesan error jika iseng nembak API
+            'amount.max' => 'Nominal terlalu besar!',
+            'amount.min' => 'Minimal pembayaran Rp 1.000',
         ]);
 
         $user = Auth::user();

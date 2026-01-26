@@ -71,13 +71,10 @@ class AdminTopupHistory extends Component
             ->where('status', 'approved');
 
         // 3. LOGIKA SCOPE DATA BERDASARKAN ROLE
-        // Jika role-nya 'kasir', filter hanya transaksi miliknya
+        // Jika role-nya 'kasir', filter hanya transaksi miliknya (berdasarkan admin_id)
         if ($currentAdmin->role === 'kasir') {
-            $query->where('executor_id', $currentAdmin->id);
+            $query->where('admin_id', $currentAdmin->id);
         }
-
-        // Catatan: Jika role 'pusat', 'dev', atau 'keuangan',
-        // kode di atas dilewati, jadi otomatis menampilkan ALL data.
 
         // 4. Eksekusi Query
         $history = $query->latest()->paginate(10);

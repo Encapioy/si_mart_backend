@@ -304,7 +304,7 @@
             {{-- List (Scrollable Area) --}}
             <div class="overflow-y-auto flex-1 p-0 relative">
                 {{-- Loading State saat ganti halaman pagination --}}
-                <div wire:loading.flex wire:target="gotoPage, nextPage, previousPage"
+                <div wire:target="gotoPage, nextPage, previousPage"
                     class="absolute inset-0 bg-white/80 z-10 flex items-center justify-center backdrop-blur-sm">
                     <svg class="animate-spin h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none"
                         viewBox="0 0 24 24">

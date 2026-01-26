@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\HistoryController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\CorrectionController;
 use App\Http\Controllers\Api\AdvertisementController;
+use App\Http\Controllers\Api\AppVersionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -40,6 +41,8 @@ Route::get('/informations', [InformationController::class, 'index']); // Berita/
 Route::post('/auth/send-otp', [AuthController::class, 'sendOtp']);       // Kirim OTP ke Email
 Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']); // Reset Password
 Route::post('/auth/reset-pin', [AuthController::class, 'resetPin']);           // Reset PIN
+
+Route::get('/app-check', [AppVersionController::class, 'checkVersion']);
 
 // =================================================================
 // GROUP 2: PROTECTED ROUTES (Butuh Token)

@@ -173,7 +173,7 @@ class AdminController extends Controller
                 'current_balance' => $targetUser->saldo,
                 'category' => 'topup',
                 // Deskripsi mencatat nama kasir asli
-                'description' => 'Setoran Tunai via Kasir ' . explode(' ', $executor->nama_lengkap)[0],
+                'description' => 'Setoran Tunai via Kasir ' . $executor->nama_lengkap,
                 'related_user_id' => $executor->id
             ]);
 

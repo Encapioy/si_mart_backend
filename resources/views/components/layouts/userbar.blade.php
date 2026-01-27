@@ -37,7 +37,7 @@
     @auth
         {{-- PERBAIKAN: Menambahkan Logika Slide Down saat Modal Buka --}}
         <div id="userbar" x-data="{ hideNav: false }" @toggle-nav.window="hideNav = $event.detail"
-            :class="hideNav ? 'translate-y-[120%]' : 'translate-y-0'"
+            :class="hideNav ? 'translate-y-[20vh]' : 'translate-y-0'"
             class="fixed bottom-0 left-0 z-50 w-full bg-white/90 backdrop-blur-md border-t border-gray-200 shadow-[0_-5px_20px_rgba(0,0,0,0.05)] rounded-t-[2rem] pb-[env(safe-area-inset-bottom)] transition-transform duration-300 ease-in-out">
 
             {{-- Grid Menu tetap h-20 (80px) --}}

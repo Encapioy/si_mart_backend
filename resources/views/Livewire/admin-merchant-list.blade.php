@@ -9,7 +9,7 @@
         {{-- Bagian Pencarian --}}
         <div class="relative w-full md:w-auto">
             {{-- Input dibuat w-full di mobile, dan w-72 (fixed width) di desktop --}}
-            <input type="text" placeholder="Cari nama toko..."
+            <input wire:model.live.debounce.300ms="search" type="text" placeholder="Cari nama toko..."
                 class="w-full md:w-72 pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 text-sm transition-all">
 
             <svg class="w-4 h-4 text-slate-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -37,7 +37,7 @@
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-4">
                                     <div class="w-12 h-12 flex-shrink-0">
-                                        <img src="{{ $store->gambar ? asset('storage/stores' . $store->gambar) : 'https://ui-avatars.com/api/?name=' . urlencode($store->nama_toko) . '&background=random' }}"
+                                        <img src="{{ $store->gambar ? asset('storage/' . $store->gambar) : 'https://ui-avatars.com/api/?name=' . urlencode($store->nama_toko) . '&background=random' }}"
                                             class="w-full h-full rounded-lg object-cover border border-slate-200"
                                             alt="{{ $store->nama_toko }}">
                                     </div>

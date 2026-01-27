@@ -85,29 +85,29 @@
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     @forelse($recent_transactions as $trx)
-                    <tr class="hover:bg-slate-50 transition">
-                        <td class="px-6 py-4 font-mono font-bold text-slate-700">{{ $trx->transaction_code }}</td>
-                        <td class="px-6 py-4">
-                            <div class="font-bold text-slate-800">{{ $trx->user->nama_lengkap ?? 'Unknown' }}</div>
-                            <div class="text-xs text-slate-400">{{ $trx->user->member_id ?? '-' }}</div>
-                        </td>
-                        <td class="px-6 py-4">
-                            @if($trx->type == 'topup')
-                                <span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold">TOPUP</span>
-                            @elseif($trx->type == 'payment')
-                                <span class="bg-orange-100 text-orange-700 px-2 py-1 rounded text-xs font-bold">PAYMENT</span>
-                            @else
-                                <span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-bold">TRANSFER</span>
-                            @endif
-                        </td>
-                        <td class="px-6 py-4 text-slate-600">{{ $trx->description }}</td>
-                        <td class="px-6 py-4 text-right font-bold text-slate-800">
-                            Rp {{ number_format($trx->total_bayar, 0, ',', '.') }}
-                        </td>
-                        <td class="px-6 py-4 text-center text-xs text-slate-400">
-                            {{ $trx->created_at->diffForHumans() }}
-                        </td>
-                    </tr>
+                        <tr class="hover:bg-slate-50 transition">
+                            <td class="px-6 py-4 font-mono font-bold text-slate-700">{{ $trx->transaction_code }}</td>
+                            <td class="px-6 py-4">
+                                <div class="font-bold text-slate-800">{{ $trx->user->nama_lengkap ?? 'Unknown' }}</div>
+                                <div class="text-xs text-slate-400">{{ $trx->user->member_id ?? '-' }}</div>
+                            </td>
+                            <td class="px-6 py-4">
+                                @if($trx->type == 'topup')
+                                    <span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold">TOPUP</span>
+                                @elseif($trx->type == 'payment')
+                                    <span class="bg-orange-100 text-orange-700 px-2 py-1 rounded text-xs font-bold">PAYMENT</span>
+                                @else
+                                    <span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-bold">TRANSFER</span>
+                                @endif
+                            </td>
+                            <td class="px-6 py-4 text-slate-600">{{ Str::limit($trx->description, 30) }}</td>
+                            <td class="px-6 py-4 text-right font-bold text-slate-800">
+                                Rp {{ number_format($trx->total_bayar, 0, ',', '.') }}
+                            </td>
+                            <td class="px-6 py-4 text-center text-xs text-slate-400">
+                                {{ $trx->created_at->diffForHumans() }}
+                            </td>
+                        </tr>
                     @empty
                     <tr>
                         <td colspan="6" class="px-6 py-8 text-center text-slate-400">Belum ada transaksi hari ini.</td>

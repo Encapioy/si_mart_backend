@@ -75,7 +75,7 @@
                                         <span class="text-xs text-slate-400">Owner: {{ $trx->store->owner->nama_lengkap ?? '-' }}</span>
                                     </div>
                                 @else
-                                    <span class="text-sm text-slate-600 italic">
+                                    <span class="text-sm text-slate-700">
                                         "{{ Str::limit($trx->description, 30) }}"
                                     </span>
                                 @endif

@@ -1,15 +1,18 @@
 <div class="p-6">
-    <div class="flex justify-between items-center mb-6">
+    <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
+        {{-- Bagian Judul --}}
         <div>
             <h1 class="text-2xl font-bold text-slate-800">Daftar Merchant</h1>
             <p class="text-slate-500 text-sm">Kelola semua toko mitra yang terdaftar.</p>
         </div>
 
-        <div class="relative">
+        {{-- Bagian Pencarian --}}
+        <div class="relative w-full md:w-auto">
+            {{-- Input dibuat w-full di mobile, dan w-72 (fixed width) di desktop --}}
             <input type="text" placeholder="Cari nama toko..."
-                class="pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 text-sm">
-            <svg class="w-4 h-4 text-slate-400 absolute left-3 top-3" fill="none" stroke="currentColor"
-                viewBox="0 0 24 24">
+                class="w-full md:w-72 pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 text-sm transition-all">
+
+            <svg class="w-4 h-4 text-slate-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
             </svg>
@@ -34,7 +37,7 @@
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-4">
                                     <div class="w-12 h-12 flex-shrink-0">
-                                        <img src="{{ $store->gambar ? asset('storage/' . $store->gambar) : 'https://ui-avatars.com/api/?name=' . urlencode($store->nama_toko) . '&background=random' }}"
+                                        <img src="{{ $store->gambar ? asset('storage/stores' . $store->gambar) : 'https://ui-avatars.com/api/?name=' . urlencode($store->nama_toko) . '&background=random' }}"
                                             class="w-full h-full rounded-lg object-cover border border-slate-200"
                                             alt="{{ $store->nama_toko }}">
                                     </div>

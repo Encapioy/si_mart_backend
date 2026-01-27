@@ -34,7 +34,7 @@
                         <div class="absolute -inset-2 bg-gradient-to-tr from-blue-600 to-cyan-400 rounded-[2.5rem] blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
                         <div class="relative">
                             @if($store->gambar)
-                                <img src="{{ asset('storage/' . $store->gambar) }}"
+                                <img src="{{ asset('storage/stores' . $store->gambar) }}"
                                      class="w-40 h-40 md:w-48 md:h-48 rounded-[2rem] object-cover border-4 border-white shadow-xl">
                             @else
                                 <div class="w-40 h-40 md:w-48 md:h-48 rounded-[2rem] bg-slate-50 border-4 border-white shadow-xl flex flex-col items-center justify-center text-slate-300">

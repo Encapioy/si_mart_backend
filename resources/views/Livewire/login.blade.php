@@ -30,7 +30,7 @@
 
             {{-- Username / Email Input --}}
             <div class="mb-5 group">
-                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Username / Email</label>
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Username / Email / No Handphone</label>
                 <div class="relative">
                     <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                         <svg class="h-5 w-5 text-slate-400 group-focus-within:text-blue-500 transition" fill="none" viewBox="0 0 24 24" stroke="currentColor">

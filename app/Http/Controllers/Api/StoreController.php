@@ -65,7 +65,7 @@ class StoreController extends Controller
             'name' => 'nullable|string|max:255',
             'description' => 'nullable|string',
             'address' => 'nullable|string',
-            'is_open' => 'nullable', // Boolean handling ada di bawah
+            'is_open' => 'nullable',
             'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
@@ -73,38 +73,44 @@ class StoreController extends Controller
             return response()->json(['message' => $validator->errors()->first()], 422);
         }
 
-        // 3. Siapkan data update (kecuali gambar dulu)
-        // Hapus 'image' dari array karena kita proses manual
-        $dataToUpdate = $request->except(['image']);
+        // 3. SIAPKAN DATA (CARA LEBIH AMAN)
+        // Kita gunakan 'only' agar variabel aneh-aneh tidak ikut masuk
+        $dataToUpdate = $request->only(['name', 'description', 'address']);
 
-        // Pastikan status toko jadi boolean (true/false)
+        // Handle Boolean is_open secara manual agar tipe datanya benar
         if ($request->has('is_open')) {
             $dataToUpdate['is_open'] = filter_var($request->is_open, FILTER_VALIDATE_BOOLEAN);
         }
 
-        // 4. Handle Gambar
+        // 4. HANDLE GAMBAR
         if ($request->hasFile('image')) {
-            // Hapus gambar lama jika ada
-            // PENTING: Pakai nama kolom yang benar: 'gambar'
-            if ($toko->gambar && Storage::disk('public')->exists($toko->gambar)) {
-                Storage::disk('public')->delete($toko->gambar);
+            $file = $request->file('image');
+
+            // Pastikan file valid sebelum diproses
+            if ($file->isValid()) {
+                // A. Hapus gambar lama jika ada (dan bukan gambar default/dummy)
+                if ($toko->gambar && Storage::disk('public')->exists($toko->gambar)) {
+                    Storage::disk('public')->delete($toko->gambar);
+                }
+
+                // B. Simpan gambar baru
+                // Ini akan menghasilkan string seperti: "stores/acak123.jpg"
+                $path = $file->store('stores', 'public');
+
+                // C. Masukkan ke array data update dengan key 'gambar'
+                $dataToUpdate['gambar'] = $path;
             }
-
-            // Upload gambar baru
-            $path = $request->file('image')->store('stores', 'public');
-
-            // PENTING: Masukkan ke array update dengan key 'gambar' (sesuai DB)
-            $dataToUpdate['gambar'] = $path;
         }
 
-        // 5. Eksekusi Update
+        // 5. EKSEKUSI UPDATE
+        // Sekarang $dataToUpdate dijamin bersih, tidak mungkin berisi object file mentah
         $toko->update($dataToUpdate);
 
-        // PENTING: Refresh model agar data 'gambar' terbaru ter-load dari DB
+        // 6. RESPONSE
         $toko->refresh();
 
-        // 6. Generate URL untuk Response
-        // PENTING: Cek '$toko->gambar', BUKAN '$toko->image_path'
+        // Buat URL lengkap untuk frontend
+        // Jika null, kirim null. Jika ada, kirim URL lengkapnya.
         $toko->image_url = $toko->gambar ? url('storage/' . $toko->gambar) : null;
 
         return response()->json([

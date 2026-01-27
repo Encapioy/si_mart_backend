@@ -1,4 +1,4 @@
-<div class="min-h-screen bg-gray-50 pb-32" x-data="{ showEditModal: false }">
+<div class="min-h-screen bg-gray-50 pb-32" x-data="{ showEditModal: false } x-init="$watch('showEditModal', value => window.dispatchEvent(new CustomEvent('toggle-nav', { detail: value })))"">
 
     {{-- HEADER GRADIENT --}}
     <div

@@ -269,7 +269,7 @@
     </div>
 
     {{-- ========================================== --}}
-    {{-- MODAL 2: RIWAYAT TRANSAKSI --}}
+    {{-- MODAL 2: RIWAYAT TOPUP --}}
     {{-- ========================================== --}}
     <div x-data="{ open: @entangle('showHistoryModal') }" x-on:open-history-modal.window="open = true"
         x-on:keydown.escape.window="open = false; $wire.closeHistory()" x-show="open" style="display: none;"
@@ -285,13 +285,27 @@
 
             {{-- Header --}}
             <div class="p-5 border-b border-slate-100 bg-slate-50 flex justify-between items-center shrink-0">
-                <div>
-                    <h3 class="font-bold text-lg text-slate-800">Riwayat Topup</h3>
-                    @if($selectedCashierId)
-                        <p class="text-xs text-slate-500">
-                            Kasir: <span class="font-bold text-blue-600">{{ $selectedCashierName }}</span>
-                        </p>
-                    @endif
+                <div class="flex items-center gap-4">
+                    <div>
+                        <h3 class="font-bold text-lg text-slate-800 leading-tight">Riwayat Topup</h3>
+                        @if($selectedCashierId)
+                            <p class="text-xs text-slate-500">
+                                Kasir: <span class="font-bold text-blue-600">{{ $selectedCashierName }}</span>
+                            </p>
+                        @endif
+                    </div>
+
+                    {{-- DROPDOWN PER PAGE --}}
+                    <div class="flex items-center gap-2 ml-2 pl-4 border-l border-slate-200">
+                        <select wire:model.live="historyPerPage"
+                            class="text-[11px] font-bold text-slate-500 bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer">
+                            <option value="10">10</option>
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                        <span class="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Baris</span>
+                    </div>
                 </div>
                 <button @click="open = false; $wire.closeHistory()" class="text-slate-400 hover:text-slate-600 transition">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

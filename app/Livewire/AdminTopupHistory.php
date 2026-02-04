@@ -15,6 +15,12 @@ class AdminTopupHistory extends Component
 {
     use WithPagination;
 
+    public $search = '';
+    public function updatingSearch()
+    {
+        $this->resetPage();
+    }
+
     public function deleteTopup($id)
     {
         $topup = TopUp::find($id);
@@ -69,6 +75,23 @@ class AdminTopupHistory extends Component
         // 2. Mulai Query Dasar
         $query = TopUp::with(['user', 'admin'])
             ->where('status', 'approved');
+
+        // LOGIKA SEARCH
+        if ($this->search !== '') {
+            $query->where(function ($q) {
+                // Cari di tabel users (santri)
+                $q->whereHas('user', function ($userQuery) {
+                    $userQuery->where('username', 'like', '%' . $this->search . '%')
+                        ->orWhere('nama_lengkap', 'like', '%' . $this->search . '%')
+                        ->orWhere('no_hp', 'like', '%' . $this->search . '%')
+                        ->orWhere('email', 'like', '%' . $this->search . '%');
+                })
+                    // Cari di tabel admins (kasir)
+                    ->orWhereHas('admin', function ($adminQuery) {
+                        $adminQuery->where('nama_lengkap', 'like', '%' . $this->search . '%');
+                    });
+            });
+        }
 
         // 3. LOGIKA SCOPE DATA BERDASARKAN ROLE
         // Jika role-nya 'kasir', filter hanya transaksi miliknya (berdasarkan admin_id)

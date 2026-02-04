@@ -61,7 +61,7 @@
                     </span>
                 </a>
 
-                <div class="relative flex items-center justify-center">
+                {{-- <div class="relative flex items-center justify-center">
                     <a href="{{ route('scan') }}"
                         class="absolute -top-6 bg-gradient-to-br from-blue-600 to-blue-700 text-white p-4 rounded-2xl shadow-lg shadow-blue-600/40 border-4 border-gray-50 transform transition-transform duration-200 active:scale-95 hover:-translate-y-1">
                         <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -72,6 +72,43 @@
                     </a>
                     <span
                         class="absolute bottom-3 text-[10px] font-semibold {{ request()->routeIs('scan') ? 'text-blue-600' : 'text-gray-400' }}">
+                        Scan
+                    </span>
+                </div> --}}
+
+                <div class="relative flex items-center justify-center">
+                    {{-- Tombol Scan - Disabled Version --}}
+                    <button type="button" @click="Swal.fire({
+                            title: 'Sabar ya,',
+                            text: 'Fitur Scan sedang dalam peningkatan sistem (Maintenance).',
+                            icon: 'info',
+                            confirmButtonText: 'Oke, Siap!',
+                            confirmButtonColor: '#2563eb',
+                            customClass: {
+                                popup: 'rounded-[2rem]',
+                                confirmButton: 'rounded-xl px-10'
+                            }
+                        })"
+                        class="absolute -top-6 bg-gradient-to-br from-blue-400 to-blue-500 text-white p-4 rounded-2xl shadow-lg shadow-blue-400/30 border-4 border-gray-50 transform transition-all duration-200 active:scale-95 hover:-translate-y-1 group">
+
+                        {{-- Ikon Gembok Kecil di Pojok --}}
+                        <div class="absolute -top-1 -right-1 bg-red-500 rounded-full p-1 border-2 border-white shadow-sm">
+                            <svg class="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd"
+                                    d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                        </div>
+
+                        {{-- Ikon Scan Utama --}}
+                        <svg class="w-7 h-7 opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z">
+                            </path>
+                        </svg>
+                    </button>
+
+                    <span class="absolute bottom-3 text-[10px] font-semibold text-gray-400">
                         Scan
                     </span>
                 </div>

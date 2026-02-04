@@ -130,7 +130,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/transactions/pay-merchant', [TransactionController::class, 'payMerchantQr']);
     Route::post('/transactions/pay-store', [TransactionController::class, 'payStoreQr']);
     Route::post('/kiosk/check-balance', [UserController::class, 'checkBalance']);
-    Route::post('/scan/check-store', [TransactionController::class, 'checkStoreQr']); // Cek QR
+    // Route::post('/scan/check-store', [TransactionController::class, 'checkStoreQr']); // Cek QR
+    Route::post('/scan/check-store', function () {
+        return redirect()->back()->with('error', 'Halaman ini sedang tidak dapat diakses.');
+    });
 
     // --- H. PRE-ORDER & FAVORITE ---
     Route::post('/po/checkout', [PreOrderController::class, 'store']);
@@ -142,7 +145,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // --- I. WALLET / BALANCE ---
     Route::post('/balance/request-topup', [BalanceController::class, 'requestTopUp']);
     Route::post('/balance/withdraw', [BalanceController::class, 'withdraw']);
-    Route::post('/balance/transfer', [BalanceController::class, 'transfer']);
+    // Route::post('/balance/transfer', [BalanceController::class, 'transfer']);
+    Route::post('/balance/transfer', function () {
+        return redirect()->back()->with('error', 'Halaman ini sedang tidak dapat diakses.');
+    });
     Route::get('/balance/recent-transfers', [BalanceController::class, 'getRecentTransfers']);
 
     // =============================================================

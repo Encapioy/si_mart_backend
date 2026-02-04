@@ -16,13 +16,36 @@
         </div>
     </div>
 
+    <div class="mb-6 flex flex-col md:flex-row gap-4">
+        <div class="relative flex-1 group">
+            <div
+                class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-500 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+            </div>
+            <input type="text" wire:model.live.debounce.300ms="search"
+                placeholder="Cari User (Nama, Username, HP) atau Nama Kasir..."
+                class="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-2xl shadow-sm focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all text-sm">
+        </div>
+
+        {{-- Info Hasil Search --}}
+        @if($search)
+            <button wire:click="$set('search', '')"
+                class="px-4 py-2 text-xs font-bold text-red-500 hover:bg-red-50 rounded-xl transition-colors">
+                Bersihkan Pencarian
+            </button>
+        @endif
+    </div>
+
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-sm text-left">
                 <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-xs border-b border-slate-200">
                     <tr>
                         <th class="px-6 py-4">Waktu</th>
-                        <th class="px-6 py-4">Santri (Penerima)</th>
+                        <th class="px-6 py-4">User (Penerima)</th>
                         <th class="px-6 py-4">Nominal</th>
                         <th class="px-6 py-4">Kasir (Petugas)</th>
                         <th class="px-6 py-4 text-center">Status</th>

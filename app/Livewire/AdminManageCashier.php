@@ -22,6 +22,7 @@ class AdminManageCashier extends Component
     public $selectedCashierId = null; // Ganti object jadi ID biar ringan di state
     public $selectedCashierName = '';
     public $showHistoryModal = false;
+    public $historyPerPage = 10;
 
     // --- Form CRUD Variables ---
     public $adminId;
@@ -133,6 +134,11 @@ class AdminManageCashier extends Component
         $this->dispatch('open-history-modal');
     }
 
+    public function updatedHistoryPerPage()
+    {
+        $this->resetPage('historyPage');
+    }
+
     public function closeHistory()
     {
         $this->showHistoryModal = false;
@@ -186,7 +192,7 @@ class AdminManageCashier extends Component
                 ->where('status', 'approved')
                 ->latest()
                 // PENTING: Gunakan pageName berbeda agar tidak bentrok
-                ->paginate(10, ['*'], 'historyPage');
+                ->paginate($this->historyPerPage, ['*'], 'historyPage');
         }
 
         return view('Livewire.admin-manage-cashier', [

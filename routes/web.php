@@ -54,7 +54,10 @@ Route::middleware(['auth:web'])->group(function () {
     Route::get('/history', HistoryPage::class)->name('history');
     Route::get('/profile', ProfilePage::class)->name('profile');
     Route::get('/ads/{id}', AdDetail::class)->name('ads.show');
-    Route::get('/scan', ScanPage::class)->name('scan');
+    // Route::get('/scan', ScanPage::class)->name('scan');
+    Route::get('/scan', function () {
+        return redirect()->back()->with('error', 'Halaman ini sedang tidak dapat diakses.');
+    });
     Route::get('/transfer/{memberId}', TransferPage::class)->name('transfer.user');
     Route::get('/pay/{storeId}', PaymentPage::class)->name('pay');
     Route::get('/payment/success/{code}', PaymentSuccessPage::class)->name('payment.success');
